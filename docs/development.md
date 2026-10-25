@@ -6,7 +6,7 @@
 
 开发支持 Windows/Linux 的桌面 JSON Editor，未来扩展 macOS。核心能力为 JSON 文本编辑、树形编辑、可靠双向同步、节点结构操作、大文件处理，以及文件和剪贴板能力。
 
-Phase0、Phase1 和 Phase2 已完成（2026-10-25）。当前版本 0.2.0，已提供正式 Monaco JSON 文本编辑、严格后台校验、无损数字字面量格式化、错误定位及格式化撤销/重做。尚未进入 Tree 或 Tree/Text 双向同步阶段。
+Phase0 至 Phase3 已完成（2026-10-25），当前版本 0.3.0。Phase3 实现独立 Tree Model、虚拟树浏览与基础节点操作，复用现有版本化文本事务；尚未进入 Phase4。拖拽和排序留待 Phase5。
 
 项目根目录已确认：`D:\4Code\JSONEditor`。检查时目录仅有 `.git`；已有 Git 仓库，不再次执行 `git init`，不擅自提交或推送。
 
@@ -16,15 +16,15 @@ Phase0、Phase1 和 Phase2 已完成（2026-10-25）。当前版本 0.2.0，已�
 | --- | --- | --- |
 | Desktop | Electron 45.0.0 | 已锁定并验证 Windows 运行时 |
 | Frontend / Language | React 19.3.1 / TypeScript 6.0.3 strict | 已锁定并通过检查 |
-| UI | Ant Design | 后续业务阶段安装，当前只有初始化提示页 |
-| Tree | React Arborist 4.0.1，自定义 JSON 行方向 | 仅 devDependency 性能原型，尚无业务 Tree |
+| UI | 自定义轻量编辑界面；Ant Design 方向 | 当前使用本地 CSS，组件库留待需要时引入 |
+| Tree | React Arborist 4.0.1，自定义 JSON 行 | Phase3 正式集成受控适配器，虚拟化、选择、展开折叠与独立节点表单 |
 | Text | Monaco Editor 0.57.0，封装官方 API | Phase2 已正式集成，ESM 代码/字体/Worker 本地打包 |
 | State | Zustand 方向 + 独立文档核心 | Phase2 TextDocumentSession 已实现；React 仅管理 UI 元数据，后续再引入 Zustand |
-| JSON Engine | TypeScript Worker + jsonc-parser 3.3.1 | 已实现严格校验与源码 edits 格式化，尚未生成业务 Tree Model |
+| JSON Engine | TypeScript Worker + jsonc-parser 3.3.1 | 严格校验、源码 edits、规范化节点表和版本化树命令已实现 |
 | DnD / Virtualization | Arborist + React DnD 16.0.1 / HTML5 Backend 16.0.1 | 组件兼容和虚拟化原型通过，业务拖拽未实现 |
 | Build | electron-vite 6.0.0 / Vite 8.3.5 | 本地依赖，生产构建已通过 |
 | Package | electron-builder 26.18.0 | Windows NSIS 已构建；Linux 配置待目标系统验证 |
-| Test | Vitest 5.0.5、Testing Library 16.3.3、Playwright 1.64.1 | 56 项单元/组件测试、4 项交互 E2E 已通过；fast-check 留待业务阶段 |
+| Test | Vitest 5.0.5、Testing Library 16.3.3、Playwright 1.64.1 | 99 项单元/组件测试、10 项交互 E2E 已通过；fast-check 留待后续阶段 |
 
 ## 3. 技术选型结论
 
@@ -208,7 +208,7 @@ Renderer -> typed Desktop API -> Preload -> Main -> OS services
 
 文档文本是内容权威；有效树是带解析 revision 的派生投影，不建立另一份可以随意改写的 Object 真相源。
 
-Phase2 的文本由 Monaco ITextModel 持有，TextDocumentSession 通过 DocumentBuffer 接口读写，不把全文逐键复制到 React state。当前只发布校验结果；下图中的 Tree 投影为 Phase3/4 目标，尚未实现。
+文本由 Monaco ITextModel 持有，TextDocumentSession 通过 DocumentBuffer 接口读写，不把全文逐键复制到 React state。Phase3 已发布有效 Tree 投影，树命令通过源码 edits 回到同一缓冲区；下图中的文件与系统剪贴板路径待 Phase6。
 
 ```text
 Text input -> DocumentSession(text, revision) -> Worker parse -> valid Tree projection
@@ -241,7 +241,7 @@ Save / Copy -> current document revision -> Main system adapter
 | Phase0 环境准备 | 工具、目录、验证、本文档 | 已完成 |
 | Phase1 初始化 | Electron/React/TS 骨架、lint/format/test、安全 IPC、Windows 构建 | 已完成；开发模式、生产资源、打包 exe 均通过验证 |
 | Phase2 Text | Monaco、严格解析、格式化、错误位置 | 已完成；后台诊断、无损字面量格式化、定位及统一文本撤销栈通过验收 |
-| Phase3 Tree | 六种类型、增删改、展开折叠 | 虚拟化从此阶段采用，稳定 ID 和模型协议已建立 |
+| Phase3 Tree | 六种类型、增删改、展开折叠 | 已完成；受控虚拟树、源码命令、基础版本保护与统一文本撤销通过验收 |
 | Phase4 同步引擎 | 双向事务、版本冲突、非法中间态、统一历史 | 无循环覆盖，旧结果不能覆盖新文本 |
 | Phase5 高级 Tree | 拖拽、移动、排序、大文件优化 | 校验移动规则，完成规模与资源基准 |
 | Phase6 桌面能力 | 文件、剪贴板、快捷键、最近文件 | IPC 有限且校验充分，错误不丢文本 |
@@ -583,3 +583,72 @@ SHA-256：`0453d7d5e4c5bdb89c3cba09a1bce394cf54ebb7ec708ff7851cf7f64face897`
 ### 28.5 下一阶段入口
 
 Phase2 到此完成。下一阶段为 Phase3：在现有文档缓冲区、revision、源码范围与 Worker 协议基础上建立独立 Tree Model 和虚拟树浏览/基础节点操作；不能引入第二份可独立覆盖文本的数据源。本轮未开始 Phase3。
+
+## 29. Phase3 执行进度
+
+开始/完成日期：2026-10-25（Asia/Shanghai）。状态：已完成。版本 0.3.0；未自动进入 Phase4。
+
+| 步骤 | 状态 | 记录 |
+| --- | --- | --- |
+| Phase2 与仓库复查 | 已完成 | 保留全部现有未提交文件和历史报告 |
+| 规范化 Tree Model | 已完成 | Worker visitor 构建节点表，避免额外完整 AST；数字字面量、源码范围与节点 ID 保留 |
+| 版本化基础命令 | 已完成 | 增删改、key/类型修改，源码 edits 原子提交；数组删除校验后保留剩余节点身份 |
+| 虚拟树 UI | 已验收 | React Arborist 固定 28px 行高；属性/类型/JSON 值表单；深层横向滚动与键盘选择 |
+| 非法/过期状态 | 已验收 | 有效树保留为只读快照，重复 key 全树只读，100000 节点保护 |
+| 测试与工件 | 已完成 | 99 项单元/组件测试；源码与打包 exe 各 10/10 E2E；0.3.0 NSIS |
+| 规模验证与收尾 | 已完成 | 真实模型路径 1,001/10,001/50,001 节点，11 行挂载；100,001 节点降级通过；文档及证据已记录 |
+
+### 29.1 已发现的问题与处理
+
+- React Arborist 行组件只负责展示与选择，不使用其内部数据编辑能力；拖拽、Drop 与内联重命名已禁用，避免绕过文档事务。
+- 新树表单在过期期间通过 fieldset 与提交处理器双重拦截，核心会话和 Worker 仍独立检查 revision、节点存在性及原始文本一致性。
+- JSDOM 不提供 ResizeObserver，组件测试只补齐尺寸观察端口；真实虚拟滚动与节点交互另在 Electron 验收。
+- Monaco 自带多个 alert 元素，节点命令错误增加独立的可访问名称，避免混淆错误来源。
+- 值表单读取上限 65,536 UTF-16 字符；更长值在文本区编辑，未截断后写回。模型预览最多 100 个源码字符。
+- 深层节点按实际最大深度提供横向滚动；Worker 重启导致根 ID 变化时重建树适配器，避免残留旧展开状态。
+- 键盘测试先点击选中根节点再发送方向键，符合树组件的焦点状态机制；单纯 DOM focus 不等同节点选中。真实窗口中的方向键选择与深层展开均通过。
+
+### 29.2 模型与命令边界
+
+`src/core/tree-model/model.ts` 定义独立于 React/Electron 的平铺节点表：ID、parentId、有序 children、key/index、六种类型、UTF-16 源码范围及预览。JSON Pointer 按需计算，ID 使用 Worker 代际前缀与递增计数，不把路径当身份。有效解析按父节点/key/位置尽量复用 ID；树命令删除数组元素时显式保留其余兄弟身份。任意文本插入/重排、历史回放或子树整体替换的身份只作尽力复用，不承诺所有结构编辑都保持语义 ID。
+
+Worker 内 `JsonDocumentEngine` 缓存上次有效树和源码。树命令必须匹配文档、revision、节点和原始源码，生成经过严格 JSON 验证的局部 edits。会话再次过滤过期响应后，以一次 Monaco 事务提交，再沿相同校验管线更新树。属性名和值可原子修改；Object 新增属性要求名称唯一，Array 新增追加末尾；根节点可以改值/类型，但不能删除。删除处理首/中/末/唯一成员的分隔符。
+
+树没有独立数据撤销栈，不使用 Arborist 内部写入能力。数字值按用户输入的 JSON 字面量写入，未改动部分不会经 JSON.parse/stringify 重排或丢失精度。非法文本保留旧树但禁用编辑和源码定位；恢复有效文本后重新启用。重复 key 保留原文、给出警告，并使整棵树只读。超过 100,000 节点停止构建并保留文本，旧树仍只读；不发布半棵树。超过自动校验字符阈值仍需显式校验。
+
+树选择可查看属性/类型/JSON 值，并点击“定位文本”；展开按钮、全部折叠、展开根节点和方向键支持浏览。更长值可直接在 Monaco 编辑；表单显式切换类型可替换整个值，不将截断预览写回。
+
+### 29.3 真实模型规模测量
+
+命令：`pnpm test:tree-performance`，证据 `docs/phase3-performance.json`。Windows x64 10.0.26200、i5-9400F、6 逻辑处理器、约 16 GiB RAM；每种合成平坦数组单次测量。通过真实 Monaco 粘贴、Worker 节点构建、传输及 Arborist 显示路径，不覆盖系统剪贴板。
+
+| 总节点数 | UTF-8 字节 | 粘贴至树可用 ms | 单节点修改至树更新 ms | 挂载行数 | 进程工作集之和 MiB | Private Bytes 之和 MiB |
+| --- | --- | --- | --- | --- | --- | --- |
+| 1,001 | 3,891 | 447.1 | 148.9 | 11 | 437.2 | 294.5 |
+| 10,001 | 48,891 | 884.3 | 190.8 | 11 | 511.7 | 370.4 |
+| 50,001 | 288,891 | 931.6 | 328.2 | 11 | 669.6 | 528.7 |
+
+100,001 节点文本仍通过 JSON 校验，树构建按上限安全降级。计时含自动校验 300ms debounce、粘贴、Worker 往返、完整元数据/索引重建、React 与自动化开销，不是纯解析耗时。内存来自 Electron 各进程，含 GPU 和自动化，工作集共享页可能重复计算；不是冷启动基线或泄漏证明。该探针在补充深度元数据和横向布局前运行，平坦数组数据路径相同；最终交互回归另覆盖深层布局。
+
+当前仍有线性完整模型/索引更新和多份投影内存成本。Phase1 原型发现的问题尚未以增量索引彻底解决，本轮只完成安全上限和实际测量，不宣称 10万/30万节点即时交互。后续需要节点级更新、深层混合结构、多次统计与长期编辑内存回归。
+
+### 29.4 最终验证与交付
+
+| 验证 | 结果 |
+| --- | --- |
+| Lint / Prettier / TypeScript strict | 通过 |
+| Vitest / Testing Library | 7 文件、99 项通过；覆盖范围编辑、六种类型、顺序/精度、重复 key、稳定 ID、命令保护、过期响应和表单只读 |
+| 生产资源 Electron E2E | 10/10 通过，无 skipped/unexpected/flaky |
+| 打包 exe E2E | 10/10 通过；包含原有文本、安全 IPC/Worker、树增删改、统一撤销重做、只读恢复、深层滚动、虚拟化及键盘选择 |
+| 开发模式 smoke | 通过；0.3.0、Monaco/树、IPC、Worker 正常 |
+| Windows x64 NSIS | 构建成功；未执行安装器 |
+
+报告：`docs/phase3-verification.json`、`docs/phase3-development-smoke.json`、`docs/phase3-e2e.json`、`docs/phase3-performance.json`。最终窗口截图：`test-results/phase3-editor.png`（忽略跟踪，后续测试可能更新）。
+
+安装包：`release/JSONEditor-0.3.0-x64-setup.exe`，123,528,199 字节（约 117.8 MiB）。SHA-256：`0b6ff6a5435633d1c4ded6dfe5b793e888c1897b43958ba433bb76ea299bb775`。保留 0.1.0/0.2.0 历史安装包；`release/win-unpacked/JSONEditor.exe` 为最新 0.3.0。未签名，使用默认图标，未发布或执行安装/升级/卸载。Linux 与真实物理中文输入法尚未验收。没有提交或推送 Git。
+
+当前仍是临时文档，关闭窗口不会保存；文件打开/保存和系统剪贴板 API 待 Phase6，拖拽/移动/排序待 Phase5。
+
+### 29.5 下一阶段入口
+
+Phase3 已完成。Phase4 继续完善同步引擎：复杂编辑与撤销回放的节点身份、版本冲突/快速连续输入/后台重启竞争、统一历史与防循环覆盖的系统性验收。Phase3 为可操作树所需的基础双向事务、非法中间态与统一撤销已实现，Phase4 应在同一内容权威上完善，避免重新创建另一份可覆盖文本的状态。本轮未开始 Phase4。

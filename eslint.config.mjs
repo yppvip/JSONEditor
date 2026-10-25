@@ -41,6 +41,7 @@ export default tseslint.config(
         queueMicrotask: 'readonly',
         DataTransfer: 'readonly',
         ClipboardEvent: 'readonly',
+        ResizeObserver: 'readonly',
       },
     },
   },

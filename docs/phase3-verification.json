@@ -1,0 +1,106 @@
+{
+  "capturedAtUtc": "2026-10-25T10:53:15.2401080Z",
+  "timezone": "Asia/Shanghai",
+  "phase": "Phase3",
+  "version": "0.3.0",
+  "status": "passed",
+  "environment": {
+    "node": "v24.16.0",
+    "platform": "win32",
+    "arch": "x64",
+    "osRelease": "10.0.26200"
+  },
+  "checks": [
+    {
+      "name": "lint-format-typecheck",
+      "passed": true
+    },
+    {
+      "name": "unit-component",
+      "passed": true,
+      "testFiles": 7,
+      "tests": 99
+    },
+    {
+      "name": "production-assets-e2e",
+      "passed": true,
+      "tests": 10
+    },
+    {
+      "name": "packaged-exe-e2e",
+      "passed": true,
+      "tests": 10
+    },
+    {
+      "name": "development-window-ipc-worker-editor-tree",
+      "passed": true
+    },
+    {
+      "name": "nsis-x64-build",
+      "passed": true
+    },
+    {
+      "name": "real-tree-scale-probe",
+      "passed": true,
+      "nodes": [
+        1001,
+        10001,
+        50001
+      ]
+    },
+    {
+      "name": "node-limit-degradation",
+      "passed": true,
+      "nodes": 100001
+    }
+  ],
+  "features": [
+    "Normalized source-ranged JSON node table in Worker",
+    "Six JSON types with controlled virtual tree browsing",
+    "Object and array child insertion/deletion",
+    "Atomic property rename/value/type source edits",
+    "Shared Monaco undo/redo history",
+    "Document, revision, request and source guards",
+    "Read-only last valid tree during invalid text",
+    "Duplicate-key tree editing protection",
+    "Tree selection to source location",
+    "Keyboard selection and deep horizontal scrolling"
+  ],
+  "limits": {
+    "maximumTreeNodes": 100000,
+    "maximumFormValueUtf16": 65536,
+    "automaticValidationUtf16": 2097152,
+    "maximumAnalysisUtf16": 20971520,
+    "maximumDepth": 512,
+    "maximumDiagnostics": 100,
+    "workerTimeoutMs": 15000,
+    "debounceMs": 300
+  },
+  "artifact": {
+    "path": "release/JSONEditor-0.3.0-x64-setup.exe",
+    "bytes": 123528199,
+    "sha256": "0b6ff6a5435633d1c4ded6dfe5b793e888c1897b43958ba433bb76ea299bb775",
+    "signed": false
+  },
+  "evidence": [
+    "docs/phase3-e2e.json",
+    "docs/phase3-development-smoke.json",
+    "docs/phase3-performance.json"
+  ],
+  "limitations": [
+    "Full model/index rebuild remains linear",
+    "Arbitrary text structural changes and undo do not guarantee semantic node identity",
+    "Performance probe uses one synthetic flat-array sample per size; not a general capacity guarantee",
+    "Performance probe preceded maxDepth metadata and horizontal layout additions; final E2E covers the latter"
+  ],
+  "notPerformed": [
+    "Phase4 advanced synchronization work",
+    "Drag, move and sort",
+    "File open/save and persistence",
+    "Installer execution, uninstall and upgrade",
+    "Linux build and desktop verification",
+    "Physical Chinese IME manual test",
+    "Long-running memory regression",
+    "Publishing"
+  ]
+}

@@ -25,6 +25,13 @@ const valid: EditorStatus = {
 
 beforeEach(() => {
   vi.clearAllMocks()
+  vi.stubGlobal(
+    'ResizeObserver',
+    class {
+      observe(): void {}
+      disconnect(): void {}
+    },
+  )
   editor.create.mockImplementation((_container: HTMLElement, onStatus: typeof notify) => {
     notify = onStatus
     queueMicrotask(() => onStatus(valid))

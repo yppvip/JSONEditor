@@ -1,28 +1,13 @@
-import { analyzeJson, formatJson } from '../core/json/engine'
+import { JsonDocumentEngine } from '../core/tree-model/document-engine'
 import type { JsonWorkerRequest, JsonWorkerResponse } from '../shared/json-worker-protocol'
 
+const engine = new JsonDocumentEngine(globalThis.crypto.randomUUID())
 self.onmessage = (event: MessageEvent<JsonWorkerRequest>): void => {
   const request = event.data
-  const { documentId, revision, requestId, action } = request
-  const started = performance.now()
+  const { documentId, revision, requestId } = request
   let response: JsonWorkerResponse
   try {
-    const result =
-      action === 'format' ? formatJson(request.text) : { ...analyzeJson(request.text), edits: [] }
-    response = {
-      kind: 'result',
-      documentId,
-      revision,
-      requestId,
-      action,
-      analysis: {
-        valid: result.valid,
-        diagnostics: result.diagnostics,
-        diagnosticsTruncated: result.diagnosticsTruncated,
-      },
-      edits: result.edits,
-      durationMs: performance.now() - started,
-    }
+    response = engine.execute(request)
   } catch {
     response = {
       kind: 'failure',

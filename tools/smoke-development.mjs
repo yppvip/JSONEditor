@@ -42,10 +42,12 @@ try {
   await expect(page.getByTestId('worker-status')).toHaveText('后台环境就绪')
   await expect(page.getByTestId('json-status')).toHaveText(/JSON 有效/)
   await expect(page.locator('.monaco-editor')).toBeVisible()
+  await expect(page.getByTestId('tree-status')).toHaveText('树可编辑')
+  await expect(page.getByRole('tree', { name: 'JSON 节点树' })).toBeVisible()
   await mkdir('test-results', { recursive: true })
   await page.screenshot({ path: 'test-results/development.png' })
   await writeFile(
-    'docs/phase2-development-smoke.json',
+    'docs/phase3-development-smoke.json',
     JSON.stringify(
       {
         capturedAtUtc: new Date().toISOString(),

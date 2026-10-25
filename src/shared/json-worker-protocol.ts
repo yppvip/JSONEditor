@@ -1,22 +1,30 @@
 import type { DocumentVersion, TextEdit } from '../core/document/contracts'
 import type { JsonAnalysis } from '../core/json/engine'
+import type { TreeCommand } from '../core/commands/tree-commands'
+import type { JsonTreeProjection } from '../core/tree-model/model'
 
 export interface JsonWorkerRequest extends DocumentVersion {
   requestId: number
-  action: 'validate' | 'format'
+  action: 'validate' | 'format' | 'tree'
   text: string
+  command?: TreeCommand
+}
+
+export interface JsonWorkerResult extends DocumentVersion {
+  kind: 'result'
+  requestId: number
+  action: JsonWorkerRequest['action']
+  analysis: JsonAnalysis
+  edits: readonly TextEdit[]
+  durationMs: number
+  tree?: JsonTreeProjection | null
+  treeMessage?: string
+  commandError?: string
 }
 
 export type JsonWorkerResponse =
   | { kind: 'ready' }
-  | (DocumentVersion & {
-      kind: 'result'
-      requestId: number
-      action: JsonWorkerRequest['action']
-      analysis: JsonAnalysis
-      edits: readonly TextEdit[]
-      durationMs: number
-    })
+  | JsonWorkerResult
   | (DocumentVersion & { kind: 'failure'; requestId: number; message: string })
 
 export interface JsonWorkerTransport {

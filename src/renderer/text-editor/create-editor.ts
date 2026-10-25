@@ -14,6 +14,9 @@ import type { DocumentStatus } from '../../core/document/text-session'
 import type { ParseDiagnostic } from '../../core/document/contracts'
 import { AUTOMATIC_VALIDATION_LIMIT } from '../../core/json/limits'
 import type { JsonWorkerResponse, JsonWorkerTransport } from '../../shared/json-worker-protocol'
+import { MAX_FORM_VALUE_LENGTH } from '../../core/tree-model/model'
+import type { JsonTreeNode } from '../../core/tree-model/model'
+import type { TreeCommand } from '../../core/commands/tree-commands'
 
 Object.assign(globalThis, { MonacoEnvironment: { getWorker: () => new EditorWorker() } })
 jsonDefaults.setDiagnosticsOptions({ validate: false, enableSchemaRequest: false })
@@ -44,6 +47,9 @@ export interface EditorView {
   redo: () => void
   retry: () => void
   focusProblem: (problem: LocatedDiagnostic) => void
+  editTree: (command: TreeCommand, baseRevision: number) => boolean
+  readNodeValue: (node: JsonTreeNode) => string | null
+  locateNode: (node: JsonTreeNode, baseRevision: number) => void
   dispose: () => void
 }
 
@@ -109,10 +115,10 @@ export function createEditor(
     {
       getText: () => model.getValue(),
       getLength: () => model.getValueLength(),
-      applyEdits: (edits) => {
+      applyEdits: (edits, origin = 'format') => {
         editor.pushUndoStop()
         editor.executeEdits(
-          'json-format',
+          `json-${origin}`,
           edits.map((edit) => {
             const start = model.getPositionAt(edit.offset)
             const end = model.getPositionAt(edit.offset + edit.length)
@@ -188,6 +194,29 @@ export function createEditor(
       editor.trigger('toolbar', 'redo', null)
     },
     retry: () => session.restart(),
+    editTree: (command, revision) => session.editTree(command, revision),
+    readNodeValue: (node) => {
+      const status = session.getSnapshot()
+      if (
+        status.state !== 'valid' ||
+        status.tree?.revision !== status.revision ||
+        node.length > MAX_FORM_VALUE_LENGTH
+      )
+        return null
+      return model.getValueInRange(
+        monaco.Range.fromPositions(
+          model.getPositionAt(node.offset),
+          model.getPositionAt(node.offset + node.length),
+        ),
+      )
+    },
+    locateNode: (node, revision) => {
+      if (session.getSnapshot().revision !== revision) return
+      const position = model.getPositionAt(node.offset)
+      editor.focus()
+      editor.setPosition(position)
+      editor.revealPositionInCenter(position)
+    },
     focusProblem: (problem) => {
       const position = model.getPositionAt(problem.offset)
       const end = model.getPositionAt(problem.offset + problem.length)

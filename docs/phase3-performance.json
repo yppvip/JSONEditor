@@ -1,0 +1,146 @@
+{
+  "capturedAtUtc": "2026-10-25T10:35:13.678Z",
+  "environment": {
+    "platform": "win32",
+    "arch": "x64",
+    "osRelease": "10.0.26200",
+    "cpu": "Intel(R) Core(TM) i5-9400F CPU @ 2.90GHz",
+    "logicalProcessors": 6,
+    "totalMemoryBytes": 17140072448
+  },
+  "samples": [
+    {
+      "elements": 1000,
+      "nodes": 1001,
+      "bytes": 3891,
+      "pasteToTreeMs": 447.13249999999994,
+      "editToTreeMs": 148.9257,
+      "mountedRows": 11,
+      "processMemory": [
+        {
+          "type": "Browser",
+          "memory": {
+            "workingSetSize": 111160,
+            "peakWorkingSetSize": 112616,
+            "privateBytes": 44068
+          }
+        },
+        {
+          "type": "GPU",
+          "memory": {
+            "workingSetSize": 98300,
+            "peakWorkingSetSize": 100204,
+            "privateBytes": 113300
+          }
+        },
+        {
+          "type": "Utility",
+          "memory": {
+            "workingSetSize": 48912,
+            "peakWorkingSetSize": 48912,
+            "privateBytes": 12312
+          }
+        },
+        {
+          "type": "Tab",
+          "memory": {
+            "workingSetSize": 189316,
+            "peakWorkingSetSize": 189764,
+            "privateBytes": 131888
+          }
+        }
+      ]
+    },
+    {
+      "elements": 10000,
+      "nodes": 10001,
+      "bytes": 48891,
+      "pasteToTreeMs": 884.3370999999997,
+      "editToTreeMs": 190.7849000000001,
+      "mountedRows": 11,
+      "processMemory": [
+        {
+          "type": "Browser",
+          "memory": {
+            "workingSetSize": 112052,
+            "peakWorkingSetSize": 112616,
+            "privateBytes": 44976
+          }
+        },
+        {
+          "type": "GPU",
+          "memory": {
+            "workingSetSize": 99300,
+            "peakWorkingSetSize": 101248,
+            "privateBytes": 116540
+          }
+        },
+        {
+          "type": "Utility",
+          "memory": {
+            "workingSetSize": 48912,
+            "peakWorkingSetSize": 48912,
+            "privateBytes": 12312
+          }
+        },
+        {
+          "type": "Tab",
+          "memory": {
+            "workingSetSize": 263668,
+            "peakWorkingSetSize": 264336,
+            "privateBytes": 205472
+          }
+        }
+      ]
+    },
+    {
+      "elements": 50000,
+      "nodes": 50001,
+      "bytes": 288891,
+      "pasteToTreeMs": 931.5629000000004,
+      "editToTreeMs": 328.1961000000001,
+      "mountedRows": 11,
+      "processMemory": [
+        {
+          "type": "Browser",
+          "memory": {
+            "workingSetSize": 111356,
+            "peakWorkingSetSize": 112912,
+            "privateBytes": 44504
+          }
+        },
+        {
+          "type": "GPU",
+          "memory": {
+            "workingSetSize": 99448,
+            "peakWorkingSetSize": 101248,
+            "privateBytes": 116552
+          }
+        },
+        {
+          "type": "Utility",
+          "memory": {
+            "workingSetSize": 48916,
+            "peakWorkingSetSize": 48916,
+            "privateBytes": 12316
+          }
+        },
+        {
+          "type": "Tab",
+          "memory": {
+            "workingSetSize": 425944,
+            "peakWorkingSetSize": 451136,
+            "privateBytes": 368040
+          }
+        }
+      ]
+    }
+  ],
+  "limitDegradationPassed": true,
+  "limitations": [
+    "One run per size on synthetic flat arrays",
+    "Wall-clock timings include paste, debounce, Worker transfer, full model rebuild, React and automation overhead",
+    "Full metadata/index rebuild remains linear; no incremental parser or index",
+    "No deep/mixed structures or long-running memory regression claim"
+  ]
+}

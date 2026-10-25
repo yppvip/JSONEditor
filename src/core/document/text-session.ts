@@ -1,5 +1,7 @@
 import { AUTOMATIC_VALIDATION_LIMIT, MAX_TEXT_LENGTH, textLimitDiagnostic } from '../json/limits'
 import type { ParseDiagnostic, TextEdit } from './contracts'
+import type { JsonTreeProjection } from '../tree-model/model'
+import type { TreeCommand } from '../commands/tree-commands'
 import type {
   JsonWorkerRequest,
   JsonWorkerResponse,
@@ -9,7 +11,7 @@ import type {
 export interface DocumentBuffer {
   getText: () => string
   getLength: () => number
-  applyEdits: (edits: readonly TextEdit[]) => void
+  applyEdits: (edits: readonly TextEdit[], origin?: 'format' | 'tree') => void
   setDiagnostics: (diagnostics: readonly ParseDiagnostic[]) => void
 }
 
@@ -22,6 +24,9 @@ export interface DocumentStatus {
   diagnosticsTruncated: boolean
   durationMs: number | null
   message: string
+  tree: JsonTreeProjection | null
+  treeMessage: string
+  treeError: string
 }
 
 export const initialDocumentStatus: DocumentStatus = {
@@ -33,6 +38,9 @@ export const initialDocumentStatus: DocumentStatus = {
   diagnosticsTruncated: false,
   durationMs: null,
   message: '',
+  tree: null,
+  treeMessage: '',
+  treeError: '',
 }
 
 export class TextDocumentSession {
@@ -101,6 +109,8 @@ export class TextDocumentSession {
       diagnosticsTruncated: false,
       durationMs: null,
       largeFile,
+      treeError: '',
+      treeMessage: '',
       state: this.snapshot.state === 'failed' ? 'failed' : largeFile ? 'manual' : 'pending',
     })
     if (!largeFile && this.snapshot.state !== 'failed' && !this.composing) this.schedule()
@@ -122,7 +132,25 @@ export class TextDocumentSession {
     }, this.debounceMs)
   }
 
-  request(action: JsonWorkerRequest['action']): void {
+  editTree(command: TreeCommand, baseRevision: number): boolean {
+    const tree = this.snapshot.tree
+    if (
+      this.disposed ||
+      this.composing ||
+      this.inFlight ||
+      this.snapshot.state !== 'valid' ||
+      !tree?.editable ||
+      tree.revision !== baseRevision ||
+      baseRevision !== this.snapshot.revision
+    ) {
+      this.publish({ treeError: '文档已变化或树不可编辑，请等待校验完成。' })
+      return false
+    }
+    this.request('tree', command)
+    return true
+  }
+
+  request(action: JsonWorkerRequest['action'], command?: TreeCommand): void {
     if (this.disposed || this.composing || this.snapshot.state === 'failed') return
     this.clearDebounce()
     if (this.buffer.getLength() > MAX_TEXT_LENGTH) {
@@ -132,6 +160,7 @@ export class TextDocumentSession {
       return
     }
     if (!this.snapshot.workerReady || this.inFlight) {
+      if (action === 'tree') return
       this.queued = action
       return
     }
@@ -141,9 +170,10 @@ export class TextDocumentSession {
       requestId: ++this.requestId,
       action,
       text: this.buffer.getText(),
+      ...(command ? { command } : {}),
     }
     this.inFlight = request
-    this.publish({ state: 'validating', message: '' })
+    this.publish({ state: 'validating', message: '', treeError: '' })
     this.armTimeout()
     try {
       this.transport.send(request)
@@ -168,7 +198,8 @@ export class TextDocumentSession {
       !current ||
       response.documentId !== this.documentId ||
       response.requestId !== current.requestId ||
-      response.revision !== current.revision
+      response.revision !== current.revision ||
+      (response.kind === 'result' && response.action !== current.action)
     )
       return
     this.inFlight = null
@@ -178,10 +209,15 @@ export class TextDocumentSession {
         this.fail(response.message)
         return
       }
-      if (response.action === 'format' && response.analysis.valid && response.edits.length) {
+      if (
+        (response.action === 'format' || response.action === 'tree') &&
+        response.analysis.valid &&
+        response.edits.length &&
+        !response.commandError
+      ) {
         // The adapter's model event increments revision synchronously. Never replace all text.
         this.queued = null
-        this.buffer.applyEdits(response.edits)
+        this.buffer.applyEdits(response.edits, response.action)
         this.request('validate')
         return
       }
@@ -191,6 +227,10 @@ export class TextDocumentSession {
         diagnostics: response.analysis.diagnostics,
         diagnosticsTruncated: response.analysis.diagnosticsTruncated,
         durationMs: response.durationMs,
+        ...(response.tree !== undefined
+          ? { tree: response.tree ?? this.snapshot.tree, treeMessage: response.treeMessage ?? '' }
+          : {}),
+        treeError: response.commandError ?? '',
       })
     }
     const action = this.queued

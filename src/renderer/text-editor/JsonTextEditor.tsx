@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { initialDocumentStatus } from '../../core/document/text-session'
 import { createEditor } from './create-editor'
 import type { EditorStatus, EditorView } from './create-editor'
+import { JsonTreeEditor } from '../tree-editor/JsonTreeEditor'
 
 const labels = {
   waiting: '正在准备编辑环境…',
@@ -46,7 +47,18 @@ export function JsonTextEditor(): React.JSX.Element {
       {status.largeFile && (
         <p className="notice">大文件模式：已暂停自动校验，请使用“校验”或“格式化”。</p>
       )}
-      <div className="editor-container" ref={container} data-testid="json-editor" />
+      <div className="editor-split">
+        <JsonTreeEditor
+          tree={status.tree}
+          current={status.state === 'valid' && status.tree?.revision === status.revision}
+          message={status.treeMessage}
+          error={status.treeError}
+          onCommand={(command, revision) => view.current?.editTree(command, revision)}
+          readValue={(node) => view.current?.readNodeValue(node) ?? null}
+          onLocate={(node, revision) => view.current?.locateNode(node, revision)}
+        />
+        <div className="editor-container" ref={container} data-testid="json-editor" />
+      </div>
       <div className={`validation-strip ${status.state}`}>
         <span role="status" aria-label="JSON 校验状态" data-testid="json-status">
           {labels[status.state]}
