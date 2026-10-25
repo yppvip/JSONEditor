@@ -1,0 +1,188 @@
+{
+  "capturedAtUtc": "2026-10-25T04:16:19.9867552Z",
+  "timezone": "Asia/Shanghai",
+  "repository": "D:\\4Code\\JSONEditor",
+  "environmentRoot": "C:\\Code\\SoftEnv",
+  "pathSource": "Persisted machine PATH + persisted user PATH; agent injected PATH excluded",
+  "checks": [
+    {
+      "name": "node",
+      "passed": true,
+      "details": {
+        "path": "C:\\Program Files\\nodejs\\node.exe",
+        "version": [
+          "v24.16.0"
+        ],
+        "exitCode": 0,
+        "allPaths": [
+          "C:\\Program Files\\nodejs\\node.exe"
+        ]
+      }
+    },
+    {
+      "name": "npm.cmd",
+      "passed": true,
+      "details": {
+        "path": "C:\\Program Files\\nodejs\\npm.cmd",
+        "version": [
+          "11.13.0"
+        ],
+        "exitCode": 0,
+        "allPaths": [
+          "C:\\Program Files\\nodejs\\npm.cmd"
+        ]
+      }
+    },
+    {
+      "name": "pnpm.cmd",
+      "passed": true,
+      "details": {
+        "path": "C:\\Code\\SoftEnv\\package-manager\\pnpm\\12.15.0\\pnpm.cmd",
+        "version": [
+          "12.15.0"
+        ],
+        "exitCode": 0,
+        "allPaths": [
+          "C:\\Code\\SoftEnv\\package-manager\\pnpm\\12.15.0\\pnpm.cmd"
+        ]
+      }
+    },
+    {
+      "name": "corepack.cmd",
+      "passed": true,
+      "details": {
+        "path": "C:\\Program Files\\nodejs\\corepack.cmd",
+        "version": [
+          "0.35.0"
+        ],
+        "exitCode": 0,
+        "allPaths": [
+          "C:\\Program Files\\nodejs\\corepack.cmd"
+        ]
+      }
+    },
+    {
+      "name": "git",
+      "passed": true,
+      "details": {
+        "path": "C:\\Program Files\\Git\\cmd\\git.exe",
+        "version": [
+          "git version 2.54.0.windows.1"
+        ],
+        "exitCode": 0,
+        "allPaths": [
+          "C:\\Program Files\\Git\\cmd\\git.exe",
+          "C:\\Users\\yp\\AppData\\Local\\UGit\\app-5.54.4\\resources\\app\\git\\cmd\\git.exe"
+        ]
+      }
+    },
+    {
+      "name": "code.cmd",
+      "passed": true,
+      "details": {
+        "path": "D:\\Microsoft VS Code\\bin\\code.cmd",
+        "version": [
+          "1.133.0",
+          "a5b500951314efd502d07465bd138dfbd714a960",
+          "x64"
+        ],
+        "exitCode": 0,
+        "allPaths": [
+          "D:\\Microsoft VS Code\\bin\\code.cmd"
+        ]
+      }
+    },
+    {
+      "name": "node-execution",
+      "passed": true,
+      "details": "{\"node\":\"v24.16.0\",\"platform\":\"win32\",\"arch\":\"x64\",\"calculation\":42}"
+    },
+    {
+      "name": "pnpm-version-pin",
+      "passed": true,
+      "details": "12.15.0"
+    },
+    {
+      "name": "project-store-environment",
+      "passed": true,
+      "details": "C:\\Code\\SoftEnv\\cache\\pnpm\\v11"
+    },
+    {
+      "name": "npm-registry",
+      "passed": true,
+      "details": [
+        "npm notice PING https://registry.npmjs.org/",
+        "npm notice PONG 634ms"
+      ]
+    },
+    {
+      "name": "dbaeumer.vscode-eslint",
+      "passed": true,
+      "details": [
+        "dbaeumer.vscode-eslint@3.0.34"
+      ]
+    },
+    {
+      "name": "esbenp.prettier-vscode",
+      "passed": true,
+      "details": [
+        "esbenp.prettier-vscode@12.4.0"
+      ]
+    },
+    {
+      "name": "ordinary-dependency-install",
+      "passed": true,
+      "details": {
+        "directory": "C:\\Code\\SoftEnv\\temp\\environment-check-20261025T0416135555057Z",
+        "exitCode": 0,
+        "output": [
+          "Progress: resolved 1, reused 0, downloaded 0, added 0",
+          "Packages are hard linked from the content-addressable store to the virtual store.",
+          "  Content-addressable store is at: C:\\Code\\SoftEnv\\cache\\pnpm\\v11",
+          "  Virtual store is at:             node_modules/.pnpm",
+          "Packages: +1",
+          "+",
+          "Progress: resolved 1, reused 0, downloaded 1, added 1, done",
+          "",
+          "dependencies:",
+          "+ is-number 7.0.0",
+          "",
+          "Done in 1.2s using pnpm v12.15.0"
+        ]
+      }
+    },
+    {
+      "name": "ordinary-dependency-execution",
+      "passed": true,
+      "details": [
+        "DEPENDENCY_EXECUTION_OK"
+      ]
+    },
+    {
+      "name": "lockfile-offline-reproduction",
+      "passed": true,
+      "details": [
+        "✓ Lockfile passes supply-chain policies (verified 321ms ago)",
+        "Lockfile is up to date, resolution step is skipped",
+        "Packages are hard linked from the content-addressable store to the virtual store.",
+        "  Content-addressable store is at: C:\\Code\\SoftEnv\\cache\\pnpm\\v11",
+        "  Virtual store is at:             node_modules/.pnpm",
+        "Packages: +1",
+        "+",
+        "Progress: resolved 1, reused 1, downloaded 0, added 1, done",
+        "",
+        "dependencies:",
+        "+ is-number 7.0.0",
+        "",
+        "Done in 106ms using pnpm v12.15.0"
+      ]
+    }
+  ],
+  "passed": true,
+  "notPerformed": [
+    "Electron project initialization",
+    "Electron binary download and GUI launch",
+    "Windows installer build",
+    "Linux build and GUI validation"
+  ]
+}
