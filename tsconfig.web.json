@@ -1,0 +1,16 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "types": ["vite/client", "vitest/globals"]
+  },
+  "include": [
+    "src/renderer/**/*",
+    "src/shared/**/*.ts",
+    "src/core/**/*.ts",
+    "src/workers/**/*.ts",
+    "tests/component/**/*",
+    "tests/performance/**/*"
+  ]
+}

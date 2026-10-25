@@ -1,0 +1,8 @@
+packages: []
+nodeLinker: hoisted
+saveExact: true
+engineStrict: true
+strictPeerDependencies: true
+allowBuilds:
+  esbuild: true
+  electron-winstaller: false

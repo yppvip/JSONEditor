@@ -1,0 +1,13 @@
+node_modules
+out
+dist
+release
+coverage
+test-results
+playwright-report
+.phase1-staging
+pnpm-lock.yaml
+docs/environment-check*.json
+docs/phase1-*.json
+docs/phase2-*.json
+docs/development.md

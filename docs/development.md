@@ -6,7 +6,7 @@
 
 开发支持 Windows/Linux 的桌面 JSON Editor，未来扩展 macOS。核心能力为 JSON 文本编辑、树形编辑、可靠双向同步、节点结构操作、大文件处理，以及文件和剪贴板能力。
 
-当前处于 Phase0：开发环境准备。只准备环境、验证工具、记录规范；本轮没有创建 Electron 应用、安装项目业务依赖、设计 UI 或实现编辑器。进入 Phase1 必须等待用户确认。
+Phase0、Phase1 和 Phase2 已完成（2026-10-25）。当前版本 0.2.0，已提供正式 Monaco JSON 文本编辑、严格后台校验、无损数字字面量格式化、错误定位及格式化撤销/重做。尚未进入 Tree 或 Tree/Text 双向同步阶段。
 
 项目根目录已确认：`D:\4Code\JSONEditor`。检查时目录仅有 `.git`；已有 Git 仓库，不再次执行 `git init`，不擅自提交或推送。
 
@@ -14,17 +14,17 @@
 
 | 层次 | 已确定方向 | 版本策略 |
 | --- | --- | --- |
-| Desktop | Electron | Phase1 选择仍受支持的稳定版本，锁定精确版本 |
-| Frontend / Language | React / TypeScript strict | Phase1 验证组件兼容后锁定 |
-| UI | Ant Design | 用于外围控件，不代替 JSON 编辑逻辑 |
-| Tree | React Arborist 受控模式、自定义 JSON 行 | Phase1 原型验证大规模数据与 React 版本兼容 |
-| Text | Monaco Editor，封装官方 API | 本地打包编辑器与 Worker，不依赖 CDN |
-| State | Zustand + 独立文档核心 | 会话元数据和 UI 状态进入 store，编辑器文本不逐键复制进 React |
-| JSON Engine | TypeScript Worker + jsonc-parser | 严格 JSON 配置，保留源码范围和数字字面量 |
-| DnD / Virtualization | Arborist + React DnD / HTML5 Backend / 内置虚拟化 | 不重复叠加拖拽库或虚拟列表 |
-| Build | electron-vite / Vite | 本地项目依赖，不全局安装 |
-| Package | electron-builder | Windows NSIS exe；Linux AppImage、deb，后续 rpm |
-| Test | Vitest、Testing Library、fast-check、Playwright Electron | Phase1 配置基础工具，后续按阶段增加测试 |
+| Desktop | Electron 45.0.0 | 已锁定并验证 Windows 运行时 |
+| Frontend / Language | React 19.3.1 / TypeScript 6.0.3 strict | 已锁定并通过检查 |
+| UI | Ant Design | 后续业务阶段安装，当前只有初始化提示页 |
+| Tree | React Arborist 4.0.1，自定义 JSON 行方向 | 仅 devDependency 性能原型，尚无业务 Tree |
+| Text | Monaco Editor 0.57.0，封装官方 API | Phase2 已正式集成，ESM 代码/字体/Worker 本地打包 |
+| State | Zustand 方向 + 独立文档核心 | Phase2 TextDocumentSession 已实现；React 仅管理 UI 元数据，后续再引入 Zustand |
+| JSON Engine | TypeScript Worker + jsonc-parser 3.3.1 | 已实现严格校验与源码 edits 格式化，尚未生成业务 Tree Model |
+| DnD / Virtualization | Arborist + React DnD 16.0.1 / HTML5 Backend 16.0.1 | 组件兼容和虚拟化原型通过，业务拖拽未实现 |
+| Build | electron-vite 6.0.0 / Vite 8.3.5 | 本地依赖，生产构建已通过 |
+| Package | electron-builder 26.18.0 | Windows NSIS 已构建；Linux 配置待目标系统验证 |
+| Test | Vitest 5.0.5、Testing Library 16.3.3、Playwright 1.64.1 | 56 项单元/组件测试、4 项交互 E2E 已通过；fast-check 留待业务阶段 |
 
 ## 3. 技术选型结论
 
@@ -48,11 +48,11 @@ Electron + React + TypeScript 已获确认，不重新评选桌面路线。优�
 | ESLint 扩展 | dbaeumer.vscode-eslint 3.0.34 | 本轮新增 |
 | Prettier 扩展 | esbenp.prettier-vscode 12.4.0 | 本轮新增 |
 
-Node 24 当前属于 LTS。24.16.0 是已安装、已验证的本机基线，不宣称它是最新补丁版本。没有为了本项目替换用户全局 Node/npm；Phase1 锁定团队基线时重新检查 Node 24 官方补丁，升级后重新验证，再统一声明文件。不要自动升级到 Current 大版本。
+Node 24 当前属于 LTS。24.16.0 是已安装、已验证的项目基线，不宣称它是最新补丁版本。Phase1 已确认其满足实际依赖 engines，并将精确版本写入 .node-version；没有替换用户全局 Node/npm。后续定期检查 Node 24 官方补丁，升级后重新验证并统一声明文件，不自动升级到 Current 大版本。
 
 暂不新增 Node 版本管理器：当前只有一个明确的有效系统 Node，避免引入版本管理器与现有安装路径竞争。团队出现多 Node 项目后，再单独选择和验证版本管理方案，不并行叠加多个管理器。
 
-TypeScript/JavaScript 支持和调试由 VS Code 内置能力提供。ESLint/Prettier 扩展已安装，但项目 lint/format 依赖和规则将在 Phase1 建立，扩展安装不代表项目配置已经完成。可选扩展为 GitLens、测试查看器；当前没有安装它们。
+TypeScript/JavaScript 支持和调试由 VS Code 内置能力提供。ESLint/Prettier 扩展及项目规则均已配置并验证，VS Code 工作区提供开发启动入口。可选扩展为 GitLens、测试查看器；当前没有安装它们。
 
 ### 4.2 必须、推荐和可选工具
 
@@ -120,17 +120,25 @@ C:\Code\SoftEnv\
 ### 5.2 当前仓库实际文件
 
 ```text
-docs/
-  development.md
-  environment-check-2026-10-25.json
-  environment-check-initial-failure.json
-tools/
-  Setup-WindowsEnvironment.ps1
-  Enter-DevEnvironment.ps1
-  Test-DevelopmentEnvironment.ps1
+src/                         # Main / Preload / Renderer / shared / core / workers
+tests/                       # unit / component / e2e / performance / integration / fixtures
+docs/                        # 开发指南、环境验证、Phase1 实测报告
+tools/                       # 环境脚本、开发模式 smoke、性能原型入口
+build/                       # 预留发布资源
+.vscode/                     # IDE 扩展建议、格式与启动入口
+package.json
+pnpm-lock.yaml
+pnpm-workspace.yaml
+electron.vite.config.mts
+electron-builder.yml
+vitest.config.mts
+playwright.config.ts
+tsconfig.{base,node,web}.json
+release/                     # 忽略跟踪：安装包及解包后的 exe
+out/                         # 忽略跟踪：生产构建结果
 ```
 
-以下是后续目录建议，当前未创建业务骨架：
+以下目录边界已建立；尚未实现的业务模块仅保留 .gitkeep，不放假实现：
 
 ```text
 src/
@@ -154,6 +162,8 @@ src/
 tests/{unit,integration,e2e,performance,fixtures}/
 build/
 ```
+
+Phase2 新增实际入口：`core/json/engine.ts`、`core/json/limits.ts`、`core/document/text-session.ts`、`shared/json-worker-protocol.ts`、`workers/json.worker.ts`、`renderer/text-editor/create-editor.ts`、`renderer/text-editor/JsonTextEditor.tsx`。已用正式 JSON Worker 替换 Phase1 的 probe Worker。
 
 ## 6. 项目架构
 
@@ -198,6 +208,8 @@ Renderer -> typed Desktop API -> Preload -> Main -> OS services
 
 文档文本是内容权威；有效树是带解析 revision 的派生投影，不建立另一份可以随意改写的 Object 真相源。
 
+Phase2 的文本由 Monaco ITextModel 持有，TextDocumentSession 通过 DocumentBuffer 接口读写，不把全文逐键复制到 React state。当前只发布校验结果；下图中的 Tree 投影为 Phase3/4 目标，尚未实现。
+
 ```text
 Text input -> DocumentSession(text, revision) -> Worker parse -> valid Tree projection
 Tree intent -> command validation(baseRevision) -> text edit transaction -> same parse pipeline
@@ -226,9 +238,9 @@ Save / Copy -> current document revision -> Main system adapter
 
 | 阶段 | 目标 | 完成标准 |
 | --- | --- | --- |
-| Phase0 环境准备 | 工具、目录、验证、本文档 | 当前完成，停止等待用户确认 |
-| Phase1 初始化 | Electron/React/TS 骨架、lint/format/test、安全 IPC、Windows 构建 | 开发启动和打包资源可加载；精确版本已记录 |
-| Phase2 Text | Monaco、严格解析、格式化、错误位置 | 非法输入保留，核心解析可测试 |
+| Phase0 环境准备 | 工具、目录、验证、本文档 | 已完成 |
+| Phase1 初始化 | Electron/React/TS 骨架、lint/format/test、安全 IPC、Windows 构建 | 已完成；开发模式、生产资源、打包 exe 均通过验证 |
+| Phase2 Text | Monaco、严格解析、格式化、错误位置 | 已完成；后台诊断、无损字面量格式化、定位及统一文本撤销栈通过验收 |
 | Phase3 Tree | 六种类型、增删改、展开折叠 | 虚拟化从此阶段采用，稳定 ID 和模型协议已建立 |
 | Phase4 同步引擎 | 双向事务、版本冲突、非法中间态、统一历史 | 无循环覆盖，旧结果不能覆盖新文本 |
 | Phase5 高级 Tree | 拖拽、移动、排序、大文件优化 | 校验移动规则，完成规模与资源基准 |
@@ -247,31 +259,29 @@ Phase1 就定义文档/revision/IPC 接口，并以临时性能样本验证 Tree
 
 检查工具和路径 -> 识别代理内置 pnpm -> 查询官方 registry -> 独立安装 pnpm -> 备份并追加用户 PATH -> 安装两项 VS Code 扩展 -> 使用持久化 PATH 验证 -> 安装执行普通依赖 -> 锁文件离线复现 -> 记录文档。
 
-### 14.2 Phase1 待用户确认后执行
+### 14.2 Phase1 初始化记录与后续使用
 
 仓库已有 docs/tools，禁止直接把脚手架覆盖到项目根目录，禁止删除目录或重新 git init。先生成到新的 staging 目录，检查内容，再以拒绝覆盖的方式合并。
 
-以下命令是下一阶段计划，本轮没有执行 dlx，也没有运行生成器：
+已执行：查询并检查 `@quick-start/create-electron@1.0.31` 包源码，安装至 `.phase1-staging/generator`，从 staging 工作目录运行 `index.js phase1-app --template react-ts --skip`，仅向原先不存在的目录生成。没有执行生成器的覆盖逻辑，没有对根目录强制覆盖。模板源码经审查后重写/适配到本项目目录，保留 NOTICE 中的 MIT 声明。
 
-本轮只查询了生成器元数据：`@quick-start/create-electron` 稳定版为 `1.0.31`，CLI 名为 `create-electron`；没有下载或执行生成器。下一阶段重新确认后记录实际使用版本。
+`--skip` 会跳过覆盖提示，不能用于已经有文件的目标；不要对本项目根目录重复运行生成器。后续开发直接使用：
 
 ```powershell
 Set-Location -LiteralPath 'D:\4Code\JSONEditor'
 . .\tools\Enter-DevEnvironment.ps1
-# 查询、审阅并记录当时的稳定版，随后的 dlx 使用精确版本，避免隐式 latest。
-$generatorVersion = (pnpm.cmd view '@quick-start/create-electron' version --registry=https://registry.npmjs.org/).Trim()
-if ($LASTEXITCODE -ne 0 -or $generatorVersion -notmatch '^\d+\.\d+\.\d+$') {
-    throw 'Cannot resolve a stable generator version.'
-}
-$staging = Join-Path 'C:\Code\SoftEnv\temp' ('jsoneditor-phase1-' + [Guid]::NewGuid().ToString('N'))
-# 执行前将 generatorVersion 记录到本节/ADR，并检查该版本 --help。
-pnpm.cmd dlx "@quick-start/create-electron@$generatorVersion" $staging --template react-ts
-if ($LASTEXITCODE -ne 0) { throw 'Scaffolding failed; do not merge output.' }
+pnpm.cmd install --frozen-lockfile
+pnpm.cmd dev
+# 检查、构建和验证分别执行：
+pnpm.cmd check
+pnpm.cmd build
+pnpm.cmd test:e2e
+pnpm.cmd build:win
 ```
 
 生成器可能交互询问更新、镜像或依赖安装：首期不启用自动更新，不预设第三方镜像，不在未经检查的生成内容上直接运行。先审阅 package.json、scripts、配置和实际模板目录。
 
-随后按此顺序完成：
+本轮按以下顺序完成：
 
 1. 检查 staging 中的源码与 manifest，拒绝把其中 `.git`、node_modules 或现有同名文档覆盖进仓库。
 2. 逐个合并尚不存在的文件；有冲突就编辑整合，不使用强制递归覆盖。模板可能使用 `src/renderer/src`，通过配置明确调整到建议边界，不盲目移动。
@@ -281,7 +291,7 @@ if ($LASTEXITCODE -ne 0) { throw 'Scaffolding failed; do not merge output.' }
 6. 运行 install、lint、format check、typecheck、unit tests、build，然后验证开发窗口与 Windows 安装包。
 7. 验证打包后资源/Worker 的加载、安全 IPC 及退出行为，更新本文件实际版本和结果。
 
-脚本名称和完整运行命令以最终合并的 package.json 为准，不把尚未创建的 `pnpm dev` 或 `pnpm build:win` 描述成当前可执行状态。
+上述命令现在均已建立，精确脚本以 package.json 为准。测试已打包 exe：设置当前会话 `JSONEDITOR_EXECUTABLE` 为 `release/win-unpacked/JSONEditor.exe` 绝对路径后运行 `pnpm test:e2e`，完成后移除该会话变量。`test:dev`/`test:performance` 会临时启动并关闭独立测试窗口，不修改文档数据。
 
 ## 15. 编码规范
 
@@ -291,11 +301,11 @@ if ($LASTEXITCODE -ne 0) { throw 'Scaffolding failed; do not merge output.' }
 - 错误包含可定位的文档/事务信息，日志不输出整份用户 JSON、文件敏感内容或凭据。
 - 大数据计算不可放 React render、输入事件或 Main 同步路径。
 - 文本 offset 统一使用编辑器的 UTF-16 单位；文件字节偏移另行转换。
-- ESLint 与 Prettier 职责分开，使用兼容配置避免规则互相冲突。规则和脚本在 Phase1 实际落地。
+- ESLint 与 Prettier 职责分开，使用兼容配置避免规则互相冲突。规则和脚本已在 Phase1 落地。
 
 ## 16. Git 规范
 
-现有 user.name/user.email 已配置，本轮不改身份。全局 core.autocrlf=true 已存在；Phase1 通过仓库 `.gitattributes` 声明行尾，不修改全局设置。
+现有 user.name/user.email 已配置，本轮不改身份。全局 core.autocrlf=true 已存在；已通过仓库 `.gitattributes` 声明行尾，不修改全局设置。仓库未跟踪文件可能不在简略 status 中展示，审阅时使用 `git status --short --untracked-files=all`。
 
 建议提交前缀 feat/fix/docs/refactor/test/build/chore，提交按可审阅变更组织；提交前查看 diff 和必要检查。不擅自 reset、清理未跟踪文件、覆盖用户修改、提交或推送。
 
@@ -304,17 +314,18 @@ if ($LASTEXITCODE -ne 0) { throw 'Scaffolding failed; do not merge output.' }
 ## 17. 依赖管理规范
 
 - pnpm 是唯一项目包管理器；npm 只用于环境引导，不混入 package-lock.json/yarn.lock。
-- Phase1 package.json 使用 `packageManager: pnpm@12.15.0`；实际变更版本时同时更新环境脚本、文档、CI 和锁文件。
-- Node 当前基线 24.16.0，可使用 engines 范围 `>=24.16.0 <25`，并用 `.node-version` 写入精确团队版本。`.nvmrc` 仅在确实选用对应管理器时提供；声明文件本身不会自动切换运行时。
+- package.json 已使用 `packageManager: pnpm@12.15.0`；实际变更版本时同时更新环境脚本、文档、CI 和锁文件。
+- Node 当前基线 24.16.0，已使用 engines 范围 `>=24.16.0 <25`，并用 `.node-version` 写入精确版本。`.nvmrc` 仅在确实选用对应管理器时提供；声明文件本身不会自动切换运行时。
 - 提交 pnpm-lock.yaml，CI 使用 `pnpm install --frozen-lockfile`。依赖版本升级单独审阅并验证。
 - pnpm 12 通用设置放 pnpm-workspace.yaml，不沿用旧版将所有选项写入 .npmrc 的做法。`.npmrc` 仅处理受支持的 registry/auth 等兼容项，绝不提交 token。
-- saveExact、engineStrict、构建脚本允许列表等在 Phase1 依据所选版本配置；不要照搬其他 pnpm 大版本的键名或命令参数。
+- saveExact、engineStrict、strictPeerDependencies、nodeLinker 和构建脚本允许列表已在 pnpm-workspace.yaml 配置；不要照搬其他 pnpm 大版本的键名或命令参数。
 - cache/store 的本机绝对路径通过激活会话或本机配置提供，不写死团队跨平台配置。
+- Monaco 和 jsonc-parser 为浏览器构建依赖，保留在 devDependencies；Vite 已将运行所需代码和资源打包进产品，不在 ASAR 中重复携带其原始 npm 源码包。
 - 不为安装速度关闭 TLS 验证、添加防病毒排除、切换不明镜像或全局允许安装脚本。
 
 ## 18. 测试策略
 
-当前只完成工具链验证，尚未配置/运行应用测试框架。
+已配置并运行 Vitest + Testing Library（Phase2 共 56 项）、Playwright Electron（当前完整文本交互 4 项），以及开发启动 smoke 和 Phase1 独立性能原型。历史结果见第 27 节，最新结果见第 28 节。fast-check 留待业务结构编辑阶段，尚未安装或执行。
 
 后续：Vitest 测纯领域逻辑；fast-check 验证随机结构操作、无损字面量与撤销；Testing Library 测节点输入/焦点/诊断；集成测试覆盖 revision 竞争和无效中间态；Playwright Electron 验证实际窗口和编辑流程。
 
@@ -324,11 +335,11 @@ Electron 自动化支持仍需按所选 Playwright/Electron 版本验证；原�
 
 electron-vite 分别构建 Main/Preload/Renderer；Worker 和 Monaco 资源随应用本地打包。electron-builder 负责分发。开发 Node 与 Electron 内置 Node 分别看待，不假设版本一致。
 
-CI 使用 Windows/Linux 各自 runner；锁定 Node、pnpm、依赖和构建环境。检查通过后构建并保存工件，签名凭据通过安全存储注入。不得因为开发服务器可用就宣称打包版本可用。
+CI 计划在 Phase7 使用 Windows/Linux 各自 runner，本轮尚未建立 CI workflow。届时锁定 Node、pnpm、依赖和构建环境；检查通过后构建并保存工件，签名凭据通过安全存储注入。当前已在本机验证 Windows 工件，不宣称 Linux 已通过。
 
 ## 20. Windows 发布策略
 
-首期 Windows x64、NSIS exe。portable 按需增加；不为同时生成 MSI 增加首期维护成本。Phase1 验证 Windows 构建，Phase7 补齐安装/升级/卸载、离线启动、签名和快捷方式检查。
+首期 Windows x64、NSIS exe。portable 按需增加；不为同时生成 MSI 增加首期维护成本。Phase1 已验证 Windows 构建和解包 exe 启动，Phase7 补齐安装/升级/卸载、离线启动、签名和快捷方式检查。
 
 不要求用户安装 Node、pnpm 或开发工具来运行发布应用。签名和更新策略单独确定，本轮不申请证书、不发布应用。
 
@@ -356,13 +367,13 @@ AppImage 不等于可以无条件运行在任意 Linux；系统库、FUSE 和架
 | 代理内置 pnpm | 初检找到 11.25.0，但其路径依赖代理运行环境；已新增独立 12.15.0 并验证持久 PATH |
 | 旧终端 PATH | 已启动终端或 IDE 可能仍持有旧 PATH；激活脚本可立即使用，或重启父应用 |
 | 多 Git | 普通 PATH 还有 UGit 内置 Git，系统 Git 排在前；未移除第三方集成，无当前阻断 |
-| Node/npm 补丁 | 复用已满足基础要求的版本，非最新承诺；Phase1 确定并验证统一补丁基线 |
+| Node/npm 补丁 | 已验证并锁定 Node 24.16.0 基线，非最新承诺；后续补丁升级单独验证 |
 | pnpm 12 变化 | 原生 CLI、配置位置和脚本策略需按当前文档验证；首轮测试发现旧参数不兼容，已修正 |
 | 跨卷 store | C 盘 store 与 D 盘项目可能采用复制，Phase1 测安装成本 |
 | VS Code 提示 | 扩展安装出现 DEP0169 url.parse 弃用提示，安装成功；未因此修改用户设置或升级整套 IDE |
-| 应用验证 | 未下载/启动 Electron，未构建安装包；这属于 Phase1，不能将工具链通过等同应用可运行 |
+| 应用验证 | Phase1 已验证开发模式、生产资源模式和打包 exe，已生成 NSIS；尚未执行安装/卸载流程 |
 | Linux | 尚未验证，需独立 runner 和实际桌面验收 |
-| Tree 大规模更新 | 虚拟化仅控制渲染，不保证内部索引局部更新；Phase1 做性能原型 |
+| Tree 大规模更新 | Phase1 原型已发现 10万/30万行整体更新成本明显，详见第 27.2 节；后续优化适配器 |
 | 无损编辑 | 数字、成员顺序、重复 key、身份恢复均需测试，不能静默转普通 Object |
 
 ### 23.1 本轮失败与修复记录
@@ -394,7 +405,14 @@ AppImage 不等于可以无条件运行在任意 Linux；系统库、FUSE 和架
 | ADR-005 | 2026-10-25 | 当前不安装 Rust、C++ Build Tools、额外 Python/Corepack shim | 已确认 |
 | ADR-006 | 2026-10-25 | 文本权威、有效 Tree 投影、带 revision 事务、统一历史 | 后续实现约束 |
 | ADR-007 | 2026-10-25 | Tree 首次实现就使用虚拟化，先测后承诺规模 | 后续实现约束 |
-| ADR-008 | 2026-10-25 | 非空仓库先 staging 生成、拒绝覆盖合并，等待用户启动 Phase1 | 待下一阶段执行 |
+| ADR-008 | 2026-10-25 | 非空仓库先 staging 生成、拒绝覆盖合并 | 已执行 |
+| ADR-009 | 2026-10-25 | D 盘 symlink 失败后使用项目级 hoisted；不用 Squirrel，禁用 electron-winstaller 脚本 | 已验证 |
+| ADR-010 | 2026-10-25 | 本地资源使用 app://editor 安全协议、精确主 frame IPC 校验和 CSP | 已通过开发/打包 E2E |
+| ADR-011 | 2026-10-25 | TS 6.0.3 满足当前 lint peer；ESM 工具配置使用 .mts | 已验证 |
+| ADR-012 | 2026-10-25 | Monaco 文本为权威，TextDocumentSession 使用缓冲区端口与带版本 Worker 协议 | Phase2 已验证 |
+| ADR-013 | 2026-10-25 | 严格诊断由自有 JSON Worker 唯一提供，禁用 Monaco 重复诊断与远程 Schema 请求 | Phase2 已验证 |
+| ADR-014 | 2026-10-25 | 格式化只修改源码空白，使用 Monaco executeEdits/undo stops，不经 Object stringify 往返 | Phase2 已验证 |
+| ADR-015 | 2026-10-25 | textarea 输入基线，关闭自动闭合/包围/缩进；大文档采用批量粘贴与显式校验 | Phase2 已验证，物理输入法仍待手工回归 |
 
 ## 25. Phase0 验证结果与停止条件
 
@@ -402,7 +420,7 @@ AppImage 不等于可以无条件运行在任意 Linux；系统库、FUSE 和架
 
 测试依赖为 `is-number@7.0.0`，安装于 SoftEnv 临时目录并使用 `--ignore-scripts`；没有污染仓库 manifest 或锁文件。离线复现使用另一个目录及同一 store，证明普通依赖锁定安装，不代表 Electron 的下载脚本或二进制已验证。
 
-Phase0 工具链条件已满足，可以在用户确认后进入 Phase1。本轮到此停止，未执行脚手架、项目依赖安装、应用启动或 Windows/Linux 业务构建。
+以上为 Phase0 历史验收记录。Phase1 随后已获用户授权并完成，其执行结果以第 27 节为准。
 
 ## 26. 官方参考
 
@@ -413,6 +431,155 @@ Phase0 工具链条件已满足，可以在用户确认后进入 Phase1。本轮
 - [electron-vite 入门与模板](https://electron-vite.org/guide/)
 - [Electron Native Modules](https://www.electronjs.org/docs/latest/tutorial/using-native-node-modules)
 - [Electron 安全约束](https://www.electronjs.org/docs/latest/tutorial/security)
+- [Electron 42 安装机制变化](https://www.electronjs.org/blog/electron-42-0)
+- [pnpm 构建脚本策略](https://pnpm.io/settings/build)
 - [electron-builder 跨平台构建](https://www.electron.build/v26/docs/features/multi-platform-build/)
 
 官方链接用于版本/机制依据；本机版本、安装成功与失败的证据以本仓库验证报告为准。
+
+## 27. Phase1 执行进度
+
+开始/完成日期：2026-10-25（Asia/Shanghai）。状态：已完成。没有自动进入 Phase2。
+
+| 步骤 | 状态 | 记录 |
+| --- | --- | --- |
+| 仓库和环境复查 | 已完成 | 已读取现有文档与环境脚本；保留现有 docs/tools |
+| staging 生成与模板审查 | 已完成 | 1.0.31 模板生成于 .phase1-staging/phase1-app；移除默认 sandbox:false、通用 IPC 和示例更新配置 |
+| 精确版本与目录边界 | 已完成 | package.json 精确版本 + pnpm-lock.yaml；Node 24.16.0；pnpm 12.15.0 |
+| Main/Preload/Renderer 与安全 IPC | 已完成并通过运行验收 | sandbox/contextIsolation 开启；仅 getAppInfo；app:// 本地资源协议与源码目录边界 |
+| Lint/Format/Typecheck/测试 | 已通过 | Lint/Format/TS strict 均通过；Vitest 2 文件、12 测试通过；性能原型 TS 也纳入类型检查 |
+| 开发模式与打包窗口验证 | 全部通过 | 开发模式、生产资源模式、解包 exe 的 IPC/隔离/Worker 均通过；测试窗口已关闭 |
+| Windows 安装包构建 | 已完成 | 已生成 x64 NSIS 和 blockmap；未执行安装或发布 |
+| 技术风险原型与收尾 | 已完成 | 1万/10万/30万行报告；锁文件冻结安装通过；ASAR 未包含性能原型或开发工具 |
+
+### 27.1 执行问题与决策
+
+- TypeScript 最新稳定版 7.0.2 超出 typescript-eslint 8.72.0 的 peer 范围（<6.1）；选用兼容稳定版 6.0.3。
+- Electron 42 起已不靠依赖 postinstall 自动下载二进制。本项目显式通过根项目 postinstall 的 `install-electron` 完成运行时准备。
+- 首次 pnpm install 在 D 盘创建依赖 symlink 时失败：`Failed to create symlink ... 函数不正确 (os error 1)`。采用项目级 `nodeLinker: hoisted` 后重试；只清理本次产生的 node_modules，不改系统权限或全局包管理器设置。
+- hoisted 安装完成 Electron 下载后，pnpm 严格脚本策略报告 electron-winstaller 的未决 install 脚本。本项目只构建 NSIS，不使用 Squirrel，已显式配置 `allowBuilds.electron-winstaller: false`；随后 `install --frozen-lockfile` 成功。
+- Node 沿用本机已验证的 24.16.0，不替换全局安装；其版本满足当前依赖 engines。后续升级补丁时同步 .node-version、engines 与 CI，不将此基线称为最新补丁。
+- Vite 提示 CommonJS 项目中的 ESM 配置未来不兼容 native loader；已将 electron-vite/Vitest 配置显式改为 .mts，不设置全局忽略变量。
+- Vitest 5 与当前 jest-dom 类型扩展不匹配；初始阶段使用 Testing Library 查询 DOM、Vitest 原生断言，移除不必要的断言扩展依赖。最终类型检查与组件测试通过。
+- Electron 没有公开的 getLastWebPreferences API；运行时沙箱/隔离状态由 preload 在同一 getAppInfo 返回值中提供，E2E 验证真实状态和主世界无 require/process 暴露，不增加通用调试 IPC。
+
+### 27.2 初步性能结果（单次合成样本）
+
+完整数据见 `docs/phase1-performance.json`。以下均为 Windows 本机单次测量，包含至少两帧等待，不是发布性能承诺。输入是平铺 Tree 行，每行 id/name/value 三属性；不是完整嵌套 JSON Tree Model。Monaco 使用关闭 JSON 语言服务的 plaintext 基线。
+
+| Tree 行数 | 文本字节数 | Tree 首次挂载 | 更新一行后的整体提交 | 实际挂载行数 | Worker parse / serialize |
+| --- | --- | --- | --- | --- | --- |
+| 10,000 | 456,671 | 58.6ms | 96.7ms | 16 | 7.0 / 0.9ms |
+| 100,000 | 4,866,671 | 517.9ms | 313.1ms | 16 | 55.7 / 12.1ms |
+| 300,000 | 15,266,671 | 1432.9ms | 1015.6ms | 16 | 154.2 / 32.4ms |
+
+Monaco 基线首次创建约 61–111ms，局部插入加帧等待约 37–50ms。Worker 原生 JSON.parse/stringify 仅用于性能比较，不是生产无损 JSON 引擎；不代表严格诊断、Schema 或复杂模型同步性能。
+
+结论：虚拟化确实限制了 DOM 行数，但大数组引用变化仍触发显著的索引/组件工作量。React Arborist 可继续作为首期适配器，不能以此承诺 10万/30万节点即时交互。Phase3/5 必须避免每次值修改替换整棵树输入，验证节点级订阅、稳定元数据与索引更新；仍不达标时替换 Tree 适配器，领域核心不依赖 Arborist。深层结构、多次统计、编辑历史和真实大文件语言服务尚待测试。
+
+### 27.3 最终验证与工件
+
+| 命令/检查 | 结果 |
+| --- | --- |
+| pnpm install --frozen-lockfile | 通过，锁文件与 manifest 一致，未重新解析依赖 |
+| pnpm check | 通过：Lint 零 warning、格式检查、两套 TS strict、12 项 Vitest 测试 |
+| pnpm build | 通过：Main、Preload、Renderer、独立 Worker 资源 |
+| pnpm test:e2e（生产资源） | 1/1 通过，app://editor/index.html、本地资源、IPC、Worker、隔离、禁止新窗口 |
+| pnpm test:dev | 通过，实际 electron-vite 开发服务器、桌面窗口、IPC 和 Worker |
+| pnpm test:performance | 通过，独立组件样本；具体性能限制见上文 |
+| pnpm build:win | 通过，Windows x64 NSIS |
+| pnpm test:e2e（JSONEDITOR_EXECUTABLE 指向解包 exe） | 1/1 通过，验证真实 ASAR 打包程序 |
+| ASAR 内容检查 | 通过，102 项；无 tests/tools/monaco-editor/react-arborist 原型包进入应用 |
+
+报告：`docs/phase1-verification.json`、`docs/phase1-development-smoke.json`、`docs/phase1-performance.json`。Playwright 原始报告在忽略跟踪的 `test-results/`；后续重跑会更新它。
+
+Windows 安装包：`release/JSONEditor-0.1.0-x64-setup.exe`，121,976,143 字节（约 116.3 MiB）。
+
+SHA-256：`a980e1cd96294866f581b885699e8bda98f7e2c9d050e3e35e3273fad14006be`
+
+可直接运行的解包程序：`release/win-unpacked/JSONEditor.exe`。本轮未运行安装器，未执行安装/升级/卸载验证，未签名、未发布；使用默认 Electron 图标，正式品牌资源留待后续阶段。工件、缓存和 staging 均不纳入 Git 跟踪。用户原有环境脚本和环境报告未改写，未提交或推送 Git。
+
+### 27.4 后续入口与明确限制
+
+下一阶段是 Phase2：集成正式 Monaco、严格 JSON 解析/格式化和错误定位，继续遵守文档/revision 契约。当前仅有初始化提示页面、只读运行时信息接口和 Worker 探针，没有 Tree/Text 业务实现。
+
+Linux 构建/运行、原生安装流程、签名、自动更新、JSON Schema、撤销/重做与复杂模型性能均未验收。性能原型只作为选型风险证据，不把原生 JSON.parse 或 plaintext 编辑器当成完成后的 JSON 引擎。
+
+## 28. Phase2 执行进度
+
+开始/完成日期：2026-10-25（Asia/Shanghai）。状态：已完成。当前版本 0.2.0；未自动进入 Phase3。
+
+| 步骤 | 状态 | 记录 |
+| --- | --- | --- |
+| Phase1 基线与现有改动复查 | 已完成 | 保留全部未提交 Phase1 文件，不重置或覆盖用户修改 |
+| 严格 JSON 核心与 Worker 协议 | 已完成 | jsonc-parser 3.3.1；严格语法、重复键、版本/任务上限、深度和尺寸保护、超时/构建失败恢复 |
+| 正式 Monaco 集成 | 已完成 | JSON token 高亮、本地资源和字体、独立文档模型及释放；禁用重复诊断/远程 Schema |
+| 校验、格式化与错误定位 | 已验收 | 300ms debounce；非法输入不改写；标记和问题列表支持行/列跳转；格式化可单步撤销/重做 |
+| 测试和 Windows 工件 | 已完成 | 56 项单元/组件测试；开发 smoke；生产资源与打包 exe 交互 E2E 通过；0.2.0 NSIS 已生成 |
+| 文档与收尾 | 已完成 | 报告、操作说明、实际限制和后续入口已记录；未开始 Tree 开发 |
+
+### 28.1 集成问题与处理
+
+- 官方 registry 首次元数据查询遇到 ECONNRESET，重试成功，未更改 TLS 或镜像。
+- jsonc-parser 的 ambient const enum 不兼容当前 verbatimModuleSyntax；深度预检仍使用其 scanner，但读取单字符结构 token，不放宽 TS 检查。库的 content 编辑字段显式映射到领域 TextEdit.text。
+- Monaco 0.57 的旧 json/monaco.contribution 转发入口无类型声明；使用当前带类型的 languages/features/json/register，不声明 any 模块。
+- 整段键盘输入最初出现尾部残留，切换 textarea 后仍复现，排除了 EditContext 是唯一原因。调试确认选区已覆盖全文；JSON 语言的自动括号/引号闭合仍会在整段输入中补字符。Phase2 显式关闭自动闭合和自动包围，保留 textarea 输入基线；后续重新启用需验证输入、粘贴和输入法，不改变安全沙箱配置。
+- 同时关闭自动缩进，保证输入和粘贴不隐式重排源码，缩进只由显式格式化操作产生。大文档测试通过合成 ClipboardEvent 触发 Monaco 批量粘贴路径，不覆盖系统剪贴板；不把多 Mi 字符当一次逐键 type 输入作为批量导入方式。
+- 单元/组件测试只替换浏览器编辑器适配端口，不伪造真实 Monaco 成功；真实高亮、键盘输入、批量粘贴、快捷键和撤销操作另在 Electron 中验收。
+
+### 28.2 数据流与操作约定
+
+```text
+Monaco ITextModel（内容权威）
+  -> onDidChangeContent / revision++ / 清除过期诊断
+  -> 300ms debounce 或显式校验/格式化
+  -> 自有 JSON Worker 严格检查 / 源码格式 edits
+  -> documentId + revision + requestId 匹配后发布
+  -> Monaco markers + 可点击的行/列问题列表
+```
+
+常用操作：直接编辑 JSON；点击“校验”；点击“格式化”或 Ctrl+Shift+F；点击错误跳转到源码；使用撤销/重做按钮或编辑器原生快捷键。格式化一次是一组撤销事务，非法 JSON 不返回格式 edits。Object 数字形式 key 的顺序、大整数、-0、指数/小数写法、字符串转义和重复键均不通过原生 Object 重新序列化。
+
+严格拒绝注释、尾随逗号、空文档、单引号、非法数字、非法转义和多根值。重复 key 属于警告，源文保留，不擅自合并或覆盖；它不等同语法错误。校验失败和过期响应都不覆盖当前输入。
+
+每文档最多一个执行中任务和一个最新待处理意图，不缓存多份待发全文。输入法 composition 期间暂停自动请求和格式应用；结束后重新 debounce。Worker 超时/错误时终止后台任务并保留文档，可点击“重试后台”建立新 Worker。模型、编辑器、监听、定时器和 Worker 在组件卸载时释放。
+
+### 28.3 当前边界（不是大文件性能承诺）
+
+| 项目 | 当前值 / 行为 |
+| --- | --- |
+| 自动校验 | 不超过 2 × 1024 × 1024 个 UTF-16 code units；300ms debounce |
+| 大文件模式 | 超过上述字符数后，用户显式校验/格式化；关闭校验装饰以减少渲染工作 |
+| 分析上限 | 20 × 1024 × 1024 个 UTF-16 code units；超过上限在主线程发送前即阻止额外全文复制，原文保留 |
+| 嵌套保护 | 最大 512 层；使用 scanner 迭代预检，避免先进入递归解析器 |
+| 诊断上限 | 保留 100 项并提示截断；语法错误优先于超出的重复键警告 |
+| 后台时限 | 15 秒（包括启动），超时终止并允许恢复 |
+| 已实测大输入 | 2,097,154 字符 ASCII JSON 字符串，真实 Monaco 批量粘贴及手动校验通过 |
+
+阈值按 UTF-16 字符单元计算，不等同 UTF-8 文件字节数或节点数量。上限是保护策略，并不证明该范围内所有结构都具备同等交互性能。尚未覆盖全范围格式化压力、深层混合结构、长期连续编辑内存和真实物理中文输入法手工回归。
+
+本阶段没有文件保存：内容仅在当前窗口的临时模型中，关闭应用不会持久化。已在页面明确提示。Tree Model、Tree/Text 双向同步和文件/剪贴板桌面 API 不在本轮实现。
+
+### 28.4 验证结果与工件
+
+| 验证 | 结果 |
+| --- | --- |
+| Lint / Format / TypeScript strict | 通过 |
+| Vitest / Testing Library | 4 文件、56 测试通过：严格语法/无损格式化、UTF-16 offset、重复键/深度、队列/版本竞争、IME 调度、超时/构建失败恢复、资源释放、工具栏和错误 UI |
+| 生产资源 E2E | 4/4 通过 |
+| 开发模式 smoke | 通过，Monaco 显示、后台校验、IPC 和 Worker 正常 |
+| 打包 exe E2E | 4/4 通过，无 skipped/unexpected/flaky；保留数字字面量的格式化、单步撤销/重做、Ctrl+Shift+F、错误定位、重复键及大输入手动校验 |
+| 离线资源边界 | E2E 观察到的渲染资源均为 app://editor；ASAR 包含字体、Monaco editor Worker 与自有 JSON Worker，无 CDN / Schema 请求 |
+| Windows x64 NSIS / frozen-lockfile | 构建通过，冻结安装通过 |
+
+证据：`docs/phase2-verification.json`、`docs/phase2-development-smoke.json`、`docs/phase2-e2e.json`。截图位于忽略跟踪的 `test-results/phase2-editor.png`，后续 E2E 会更新测试目录。
+
+安装包：`release/JSONEditor-0.2.0-x64-setup.exe`，123,485,071 字节（约 117.8 MiB）。
+
+SHA-256：`0453d7d5e4c5bdb89c3cba09a1bce394cf54ebb7ec708ff7851cf7f64face897`
+
+保留此前的 0.1.0 安装包；`release/win-unpacked/JSONEditor.exe` 为最新 0.2.0 程序。当前仍未签名、未执行安装器或发布；Linux、安装/升级/卸载和物理输入法验收尚未执行。没有修改全局环境、提交或推送 Git。
+
+### 28.5 下一阶段入口
+
+Phase2 到此完成。下一阶段为 Phase3：在现有文档缓冲区、revision、源码范围与 Worker 协议基础上建立独立 Tree Model 和虚拟树浏览/基础节点操作；不能引入第二份可独立覆盖文本的数据源。本轮未开始 Phase3。

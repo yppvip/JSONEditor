@@ -1,0 +1,73 @@
+{
+  "capturedAtUtc": "2026-10-25T07:03:13.156Z",
+  "timezone": "Asia/Shanghai",
+  "phase": "Phase1",
+  "status": "passed",
+  "runtime": {
+    "node": "v24.16.0",
+    "pnpm": "12.15.0",
+    "electron": "45.0.0",
+    "react": "19.3.1",
+    "typescript": "6.0.3"
+  },
+  "checks": [
+    {
+      "name": "lint-format-typecheck",
+      "passed": true
+    },
+    {
+      "name": "unit-component",
+      "passed": true,
+      "testFiles": 2,
+      "tests": 12
+    },
+    {
+      "name": "production-build",
+      "passed": true
+    },
+    {
+      "name": "development-window-ipc-worker",
+      "passed": true
+    },
+    {
+      "name": "production-assets-e2e",
+      "passed": true,
+      "tests": 1
+    },
+    {
+      "name": "packaged-exe-e2e",
+      "passed": true,
+      "tests": 1
+    },
+    {
+      "name": "performance-probe",
+      "passed": true,
+      "sizes": [
+        10000,
+        100000,
+        300000
+      ]
+    },
+    {
+      "name": "nsis-x64-build",
+      "passed": true
+    },
+    {
+      "name": "package-content-boundary",
+      "passed": true,
+      "forbiddenEntries": []
+    }
+  ],
+  "artifact": {
+    "path": "release/JSONEditor-0.1.0-x64-setup.exe",
+    "bytes": 121976143,
+    "sha256": "a980e1cd96294866f581b885699e8bda98f7e2c9d050e3e35e3273fad14006be",
+    "signed": false
+  },
+  "notPerformed": [
+    "Installer execution / uninstall / upgrade",
+    "Linux build and desktop validation",
+    "JSON editor business features",
+    "Publishing"
+  ]
+}

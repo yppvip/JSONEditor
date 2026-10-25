@@ -1,0 +1,94 @@
+{
+  "capturedAtUtc": "2026-10-25T09:59:30.888Z",
+  "timezone": "Asia/Shanghai",
+  "phase": "Phase2",
+  "version": "0.2.0",
+  "status": "passed",
+  "environment": {
+    "node": "v24.16.0",
+    "platform": "win32",
+    "arch": "x64",
+    "osRelease": "10.0.26200"
+  },
+  "checks": [
+    {
+      "name": "lint-format-typecheck",
+      "passed": true
+    },
+    {
+      "name": "unit-component",
+      "passed": true,
+      "testFiles": 4,
+      "tests": 56
+    },
+    {
+      "name": "production-assets-e2e",
+      "passed": true,
+      "tests": 4
+    },
+    {
+      "name": "packaged-exe-e2e",
+      "passed": true,
+      "tests": 4
+    },
+    {
+      "name": "development-window-ipc-worker-editor",
+      "passed": true
+    },
+    {
+      "name": "nsis-x64-build",
+      "passed": true
+    },
+    {
+      "name": "frozen-lockfile-install",
+      "passed": true
+    },
+    {
+      "name": "local-worker-font-assets",
+      "passed": true,
+      "assets": [
+        "\\out\\renderer\\assets\\codicon-DF1abBS2.ttf",
+        "\\out\\renderer\\assets\\editor.worker-BWgavr07.js",
+        "\\out\\renderer\\assets\\json.worker-CXVw11Wk.js",
+        "\\out\\renderer\\assets\\json.worker-hcWAXWZ6.js"
+      ]
+    },
+    {
+      "name": "no-development-source-packages-in-asar",
+      "passed": true
+    }
+  ],
+  "features": [
+    "JSON token highlighting",
+    "Strict background validation",
+    "Revision-based stale result rejection",
+    "Source-preserving format edits",
+    "Native format undo/redo and Ctrl+Shift+F",
+    "Line/column error focus",
+    "Duplicate-key warnings",
+    "Large-document manual validation",
+    "Worker timeout/restart"
+  ],
+  "limits": {
+    "automaticValidationUtf16": 2097152,
+    "maximumAnalysisUtf16": 20971520,
+    "maximumDepth": 512,
+    "maximumDiagnostics": 100,
+    "workerTimeoutMs": 15000,
+    "debounceMs": 300
+  },
+  "artifact": {
+    "path": "release/JSONEditor-0.2.0-x64-setup.exe",
+    "bytes": 123485071,
+    "sha256": "0453d7d5e4c5bdb89c3cba09a1bce394cf54ebb7ec708ff7851cf7f64face897",
+    "signed": false
+  },
+  "notPerformed": [
+    "Installer execution / uninstall / upgrade",
+    "Linux build and desktop verification",
+    "Physical Chinese IME manual test",
+    "Tree editor / Tree-Text synchronization",
+    "File open/save and persistence",
+    "Publishing"
+  ]
+}

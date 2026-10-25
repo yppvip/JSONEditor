@@ -1,0 +1,26 @@
+appId: io.jsoneditor.desktop
+productName: JSONEditor
+directories:
+  output: release
+files:
+  - out/**
+  - package.json
+  - NOTICE
+asar: true
+npmRebuild: false
+win:
+  executableName: JSONEditor
+  target:
+    - target: nsis
+      arch: [x64]
+nsis:
+  artifactName: '${productName}-${version}-${arch}-setup.${ext}'
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: false
+linux:
+  target: [AppImage, deb]
+  category: Development
+  maintainer: JSONEditor contributors
+  executableName: jsoneditor

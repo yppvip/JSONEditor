@@ -1,0 +1,169 @@
+{
+  "capturedAtUtc": "2026-10-25T06:57:38.683Z",
+  "platform": "win32",
+  "node": "v24.16.0",
+  "results": [
+    {
+      "count": 10000,
+      "bytes": 456671,
+      "shape": "flat rows; one-line JSON; 3 properties per row",
+      "treeMountMs": 58.600000001490116,
+      "treeUpdateMs": 96.69999999925494,
+      "mountedRows": 16,
+      "editorMountMs": 111,
+      "editorEditMs": 49.5,
+      "workerRoundTripMs": 38.5,
+      "parseMs": 7,
+      "serializeMs": 0.900000000372529,
+      "characters": 456671,
+      "editorMode": "plaintext baseline; JSON services not enabled",
+      "processMemory": [
+        {
+          "type": "Browser",
+          "memory": {
+            "workingSetSize": 106928,
+            "peakWorkingSetSize": 107512,
+            "privateBytes": 40764
+          }
+        },
+        {
+          "type": "GPU",
+          "memory": {
+            "workingSetSize": 96932,
+            "peakWorkingSetSize": 100244,
+            "privateBytes": 103880
+          }
+        },
+        {
+          "type": "Utility",
+          "memory": {
+            "workingSetSize": 56252,
+            "peakWorkingSetSize": 57884,
+            "privateBytes": 14596
+          }
+        },
+        {
+          "type": "Tab",
+          "memory": {
+            "workingSetSize": 245220,
+            "peakWorkingSetSize": 247092,
+            "privateBytes": 186896
+          }
+        }
+      ]
+    },
+    {
+      "count": 100000,
+      "bytes": 4866671,
+      "shape": "flat rows; one-line JSON; 3 properties per row",
+      "treeMountMs": 517.8999999985099,
+      "treeUpdateMs": 313.09999999962747,
+      "mountedRows": 16,
+      "editorMountMs": 104.40000000037253,
+      "editorEditMs": 48,
+      "workerRoundTripMs": 76.90000000037253,
+      "parseMs": 55.69999999925494,
+      "serializeMs": 12.099999999627471,
+      "characters": 4866671,
+      "editorMode": "plaintext baseline; JSON services not enabled",
+      "processMemory": [
+        {
+          "type": "Browser",
+          "memory": {
+            "workingSetSize": 107252,
+            "peakWorkingSetSize": 107512,
+            "privateBytes": 41216
+          }
+        },
+        {
+          "type": "GPU",
+          "memory": {
+            "workingSetSize": 97080,
+            "peakWorkingSetSize": 100244,
+            "privateBytes": 105140
+          }
+        },
+        {
+          "type": "Utility",
+          "memory": {
+            "workingSetSize": 56252,
+            "peakWorkingSetSize": 57884,
+            "privateBytes": 14596
+          }
+        },
+        {
+          "type": "Tab",
+          "memory": {
+            "workingSetSize": 764064,
+            "peakWorkingSetSize": 778336,
+            "privateBytes": 713348
+          }
+        }
+      ]
+    },
+    {
+      "count": 300000,
+      "bytes": 15266671,
+      "shape": "flat rows; one-line JSON; 3 properties per row",
+      "treeMountMs": 1432.9000000003725,
+      "treeUpdateMs": 1015.5999999996275,
+      "mountedRows": 16,
+      "editorMountMs": 61.40000000037253,
+      "editorEditMs": 37.09999999962747,
+      "workerRoundTripMs": 198,
+      "parseMs": 154.19999999925494,
+      "serializeMs": 32.40000000037253,
+      "characters": 15266671,
+      "editorMode": "plaintext baseline; JSON services not enabled",
+      "processMemory": [
+        {
+          "type": "Browser",
+          "memory": {
+            "workingSetSize": 107312,
+            "peakWorkingSetSize": 107512,
+            "privateBytes": 41224
+          }
+        },
+        {
+          "type": "GPU",
+          "memory": {
+            "workingSetSize": 97180,
+            "peakWorkingSetSize": 100244,
+            "privateBytes": 106244
+          }
+        },
+        {
+          "type": "Utility",
+          "memory": {
+            "workingSetSize": 56320,
+            "peakWorkingSetSize": 57884,
+            "privateBytes": 14604
+          }
+        },
+        {
+          "type": "Tab",
+          "memory": {
+            "workingSetSize": 1645780,
+            "peakWorkingSetSize": 1690516,
+            "privateBytes": 1592016
+          }
+        }
+      ]
+    }
+  ],
+  "limitations": [
+    "Single run per size; warm caches",
+    "Synthetic flat rows, not a complete JSON tree model",
+    "Monaco plaintext baseline, not JSON language validation",
+    "Native JSON.parse/stringify benchmark, not a lossless production parser",
+    "Task Manager-style process metrics include benchmark/dev overhead"
+  ],
+  "environment": {
+    "arch": "x64",
+    "osRelease": "10.0.26200",
+    "cpu": "Intel(R) Core(TM) i5-9400F CPU @ 2.90GHz",
+    "logicalProcessors": 6,
+    "systemMemoryBytes": 17140072448,
+    "metadataRecordedAtUtc": "2026-10-25T07:03:13.153Z"
+  }
+}
