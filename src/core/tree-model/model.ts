@@ -60,6 +60,7 @@ export function buildTree(
   nextId: () => string,
   previous: JsonTreeProjection | null = null,
   hint?: TreeIdentityHint,
+  identity?: { anchors?: ReadonlyMap<number, string>; restoredIds?: readonly string[] },
 ): { tree: JsonTreeProjection | null; message: string } {
   const old =
     previous?.documentId === version.documentId
@@ -81,9 +82,18 @@ export function buildTree(
     const key = parent?.node.type === 'object' ? parent.pendingKey : null
     const position = parent?.node.children.length ?? 0
     let candidate: string | undefined
-    if (!parent)
+    if (identity?.restoredIds) candidate = identity.restoredIds[nodes.length]
+    else if (!parent)
       candidate = previous?.documentId === version.documentId ? previous.rootId : undefined
-    else {
+    else if (identity?.anchors) {
+      const anchored = identity.anchors.get(key?.offset ?? offset)
+      const original = anchored ? old.get(anchored) : undefined
+      if (
+        original?.parentId === parent.node.id &&
+        old.get(parent.node.id)?.type === parent.node.type
+      )
+        candidate = anchored
+    } else {
       const oldParent = old.get(parent.node.id)
       const oldChildren = hint?.parentId === parent.node.id ? hint.children : oldParent?.children
       if (key && oldParent?.type === 'object') {

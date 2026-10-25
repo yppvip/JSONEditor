@@ -2,12 +2,15 @@ import type { DocumentVersion, TextEdit } from '../core/document/contracts'
 import type { JsonAnalysis } from '../core/json/engine'
 import type { TreeCommand } from '../core/commands/tree-commands'
 import type { JsonTreeProjection } from '../core/tree-model/model'
+import type { ChangeBatch } from '../core/document/change-map'
 
 export interface JsonWorkerRequest extends DocumentVersion {
   requestId: number
   action: 'validate' | 'format' | 'tree'
   text: string
   command?: TreeCommand
+  historyVersion?: number
+  changeJournal?: readonly ChangeBatch[]
 }
 
 export interface JsonWorkerResult extends DocumentVersion {

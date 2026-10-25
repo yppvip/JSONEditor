@@ -25,6 +25,7 @@ function TreeRow({ node, style }: NodeRendererProps<JsonTreeNode>): React.JSX.El
     <div
       style={style}
       className={`json-tree-row ${node.isSelected ? 'selected' : ''}`}
+      data-node-id={node.id}
       onClick={() => node.select()}
     >
       <button

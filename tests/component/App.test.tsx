@@ -65,6 +65,17 @@ it('reports a rejected desktop connection', async () => {
   expect((await screen.findByText('桌面连接失败')).textContent).toBe('桌面连接失败')
 })
 
+it('makes composition visible and disables commands until it ends', async () => {
+  render(<App />)
+  await screen.findByText('JSON 有效')
+  act(() => notify({ ...valid, composing: true }))
+  expect(screen.getByTestId('json-status').textContent).toBe('输入中，暂停同步')
+  expect(screen.getByRole('button', { name: '格式化' }).hasAttribute('disabled')).toBe(true)
+  expect(screen.getByRole('button', { name: '校验' }).hasAttribute('disabled')).toBe(true)
+  act(() => notify(valid))
+  expect(screen.getByRole('button', { name: '格式化' }).hasAttribute('disabled')).toBe(false)
+})
+
 it('links located errors to the editor and offers recovery', async () => {
   const { unmount } = render(<App />)
   await screen.findByText('JSON 有效')

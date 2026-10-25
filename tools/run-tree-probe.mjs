@@ -71,7 +71,7 @@ try {
   })
   await expect(page.getByTestId('json-status')).toHaveText(/^JSON 有效/)
   await writeFile(
-    'docs/phase3-performance.json',
+    'docs/phase4-performance.json',
     JSON.stringify(
       {
         capturedAtUtc: new Date().toISOString(),

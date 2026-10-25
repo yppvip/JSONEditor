@@ -27,7 +27,7 @@ export function JsonTextEditor(): React.JSX.Element {
       editor.dispose()
     }
   }, [])
-  const busy = !status.workerReady || status.state === 'validating'
+  const busy = !status.workerReady || status.state === 'validating' || status.composing
   const errors = status.problems.filter((problem) => problem.severity === 'error').length
   const warnings = status.problems.filter((problem) => problem.severity === 'warning').length
   return (
@@ -50,7 +50,11 @@ export function JsonTextEditor(): React.JSX.Element {
       <div className="editor-split">
         <JsonTreeEditor
           tree={status.tree}
-          current={status.state === 'valid' && status.tree?.revision === status.revision}
+          current={
+            !status.composing &&
+            status.state === 'valid' &&
+            status.tree?.revision === status.revision
+          }
           message={status.treeMessage}
           error={status.treeError}
           onCommand={(command, revision) => view.current?.editTree(command, revision)}
@@ -61,7 +65,7 @@ export function JsonTextEditor(): React.JSX.Element {
       </div>
       <div className={`validation-strip ${status.state}`}>
         <span role="status" aria-label="JSON 校验状态" data-testid="json-status">
-          {labels[status.state]}
+          {status.composing ? '输入中，暂停同步' : labels[status.state]}
           {warnings ? ` · ${warnings} 个警告` : ''}
           {errors ? ` · ${errors} 个错误` : ''}
         </span>

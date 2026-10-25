@@ -2,6 +2,9 @@ import { AUTOMATIC_VALIDATION_LIMIT, MAX_TEXT_LENGTH, textLimitDiagnostic } from
 import type { ParseDiagnostic, TextEdit } from './contracts'
 import type { JsonTreeProjection } from '../tree-model/model'
 import type { TreeCommand } from '../commands/tree-commands'
+import { applySourceEdits } from '../commands/tree-commands'
+import { MAX_CHANGE_RECORDS } from './change-map'
+import type { ChangeBatch, SourceChange } from './change-map'
 import type {
   JsonWorkerRequest,
   JsonWorkerResponse,
@@ -11,7 +14,8 @@ import type {
 export interface DocumentBuffer {
   getText: () => string
   getLength: () => number
-  applyEdits: (edits: readonly TextEdit[], origin?: 'format' | 'tree') => void
+  getHistoryVersion?: () => number
+  applyEdits: (edits: readonly TextEdit[], origin?: 'format' | 'tree') => boolean | void
   setDiagnostics: (diagnostics: readonly ParseDiagnostic[]) => void
 }
 
@@ -27,6 +31,8 @@ export interface DocumentStatus {
   tree: JsonTreeProjection | null
   treeMessage: string
   treeError: string
+  composing: boolean
+  lastChange: 'text' | 'tree' | 'format' | 'undo' | 'redo' | null
 }
 
 export const initialDocumentStatus: DocumentStatus = {
@@ -41,6 +47,8 @@ export const initialDocumentStatus: DocumentStatus = {
   tree: null,
   treeMessage: '',
   treeError: '',
+  composing: false,
+  lastChange: null,
 }
 
 export class TextDocumentSession {
@@ -55,6 +63,8 @@ export class TextDocumentSession {
   private generation = 0
   private disposed = false
   private composing = false
+  private journal: ChangeBatch[] = []
+  private applying: 'format' | 'tree' | null = null
 
   constructor(
     private readonly documentId: string,
@@ -97,14 +107,23 @@ export class TextDocumentSession {
     this.armTimeout()
   }
 
-  changed(): void {
+  changed(changes?: readonly SourceChange[], origin: 'text' | 'undo' | 'redo' = 'text'): void {
     if (this.disposed) return
     this.queued = null
     this.clearDebounce()
     const largeFile = this.buffer.getLength() > AUTOMATIC_VALIDATION_LIMIT
+    const revision = this.snapshot.revision + 1
+    if (changes?.length && changes.length <= MAX_CHANGE_RECORDS) {
+      this.journal.push({ revision, changes })
+      while (
+        this.journal.reduce((sum, batch) => sum + batch.changes.length, 0) > MAX_CHANGE_RECORDS
+      )
+        this.journal.shift()
+    } else this.journal = []
     this.buffer.setDiagnostics([])
     this.publish({
-      revision: this.snapshot.revision + 1,
+      revision,
+      lastChange: this.applying ?? origin,
       diagnostics: [],
       diagnosticsTruncated: false,
       durationMs: null,
@@ -117,7 +136,20 @@ export class TextDocumentSession {
   }
 
   setComposing(composing: boolean): void {
+    if (this.disposed) return
     this.composing = composing
+    this.publish({
+      composing,
+      ...(!composing && this.snapshot.state !== 'failed'
+        ? {
+            state: this.snapshot.largeFile
+              ? ('manual' as const)
+              : this.inFlight
+                ? ('validating' as const)
+                : ('pending' as const),
+          }
+        : {}),
+    })
     if (composing) {
       this.clearDebounce()
       this.queued = null
@@ -170,6 +202,8 @@ export class TextDocumentSession {
       requestId: ++this.requestId,
       action,
       text: this.buffer.getText(),
+      ...(this.buffer.getHistoryVersion ? { historyVersion: this.buffer.getHistoryVersion() } : {}),
+      ...(this.journal.length ? { changeJournal: [...this.journal] } : {}),
       ...(command ? { command } : {}),
     }
     this.inFlight = request
@@ -205,8 +239,21 @@ export class TextDocumentSession {
     this.inFlight = null
     this.clearTimeout()
     if (response.revision === this.snapshot.revision && !this.composing) {
+      if (this.buffer.getText() !== current.text) {
+        this.changed()
+        this.request('validate')
+        return
+      }
       if (response.kind === 'failure') {
         this.fail(response.message)
+        return
+      }
+      if (
+        response.tree &&
+        (response.tree.documentId !== this.documentId ||
+          response.tree.revision !== current.revision)
+      ) {
+        this.fail('后台返回的树版本不一致；当前文本已保留，请重试后台。')
         return
       }
       if (
@@ -215,9 +262,24 @@ export class TextDocumentSession {
         response.edits.length &&
         !response.commandError
       ) {
-        // The adapter's model event increments revision synchronously. Never replace all text.
         this.queued = null
-        this.buffer.applyEdits(response.edits, response.action)
+        // The adapter must emit exactly one synchronous model transaction.
+        try {
+          const expected = applySourceEdits(current.text, response.edits)
+          this.applying = response.action
+          const applied = this.buffer.applyEdits(response.edits, response.action)
+          if (
+            applied === false ||
+            this.snapshot.revision !== current.revision + 1 ||
+            this.buffer.getText() !== expected
+          )
+            throw new Error('Incomplete transaction')
+        } catch {
+          this.fail('编辑提交未完成；请检查当前文本并重试后台。')
+          return
+        } finally {
+          this.applying = null
+        }
         this.request('validate')
         return
       }
@@ -245,7 +307,16 @@ export class TextDocumentSession {
     this.clearTimeout()
     this.inFlight = null
     this.queued = null
-    this.publish({ state: 'waiting', workerReady: false, message: '', diagnostics: [] })
+    this.publish({
+      state: 'waiting',
+      workerReady: false,
+      message: '',
+      diagnostics: [],
+      diagnosticsTruncated: false,
+      durationMs: null,
+      treeMessage: '',
+      treeError: '',
+    })
     this.buffer.setDiagnostics([])
     this.startWorker()
   }
@@ -286,6 +357,9 @@ export class TextDocumentSession {
     this.clearDebounce()
     this.clearTimeout()
     this.transport?.dispose()
+    this.inFlight = null
+    this.queued = null
+    this.journal = []
     this.listeners.clear()
   }
 }

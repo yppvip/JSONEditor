@@ -115,9 +115,10 @@ export function createEditor(
     {
       getText: () => model.getValue(),
       getLength: () => model.getValueLength(),
+      getHistoryVersion: () => model.getAlternativeVersionId(),
       applyEdits: (edits, origin = 'format') => {
         editor.pushUndoStop()
-        editor.executeEdits(
+        const applied = editor.executeEdits(
           `json-${origin}`,
           edits.map((edit) => {
             const start = model.getPositionAt(edit.offset)
@@ -129,6 +130,7 @@ export function createEditor(
           }),
         )
         editor.pushUndoStop()
+        return applied
       },
       setDiagnostics: (diagnostics) => {
         monaco.editor.setModelMarkers(
@@ -169,8 +171,17 @@ export function createEditor(
   }
   const unsubscribe = session.subscribe(publishStatus)
   queueMicrotask(publishStatus)
-  const change = model.onDidChangeContent(() => {
-    session.changed()
+  const change = model.onDidChangeContent((event) => {
+    session.changed(
+      event.isFlush
+        ? undefined
+        : event.changes.map((item) => ({
+            offset: item.rangeOffset,
+            length: item.rangeLength,
+            insertedLength: item.text.length,
+          })),
+      event.isUndoing ? 'undo' : event.isRedoing ? 'redo' : 'text',
+    )
     const large = model.getValueLength() > AUTOMATIC_VALIDATION_LIMIT
     editor.updateOptions({ renderValidationDecorations: large ? 'off' : 'on' })
   })
