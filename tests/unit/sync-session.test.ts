@@ -106,6 +106,34 @@ afterEach(() => {
 })
 
 describe('synchronization races and transaction boundaries', () => {
+  it('accepts a compact scalar response without transferring a full node table', () => {
+    const h = harness()
+    const worker = h.start()
+    const before = h.session.getSnapshot().tree!
+    h.session.editTree({ kind: 'update', nodeId: before.nodes[1]!.id, valueText: '9' }, 0)
+    worker.finish()
+    const { tree: full, ...compact } = worker.engine.execute(worker.requests.at(-1)!)
+    expect(full).toBeDefined()
+    expect(compact.treePatch).toBeDefined()
+    worker.receive(compact)
+    expect(h.session.getSnapshot().state).toBe('valid')
+    expect(h.session.getSnapshot().tree?.nodes[1]?.preview).toBe('9')
+    expect(h.session.getSnapshot().tree?.nodes[0]).toBe(before.nodes[0])
+    expect(h.apply).toHaveBeenCalledOnce()
+    h.session.dispose()
+  })
+  it('stops on a compact patch with an incompatible base and preserves committed text', () => {
+    const h = harness()
+    const worker = h.start()
+    const tree = h.session.getSnapshot().tree!
+    h.session.editTree({ kind: 'update', nodeId: tree.nodes[1]!.id, valueText: '9' }, 0)
+    worker.finish()
+    const response = worker.engine.execute(worker.requests.at(-1)!)
+    worker.receive({ ...response, treePatch: { ...response.treePatch!, baseRevision: 99 } })
+    expect(h.session.getSnapshot().state).toBe('failed')
+    expect(h.source()).toBe('{"a":9,"b":[2,3]}')
+    h.session.dispose()
+  })
   it('returns large documents to manual mode when composition consumes an in-flight result', () => {
     const h = harness('normal', 2_097_153)
     const worker = h.start()

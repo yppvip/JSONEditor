@@ -1,0 +1,118 @@
+{
+  "capturedAtUtc": "2026-10-25T12:25:39.4199291Z",
+  "timezone": "Asia/Shanghai",
+  "phase": "Phase5",
+  "version": "0.5.0",
+  "status": "passed",
+  "environment": {
+    "node": "v24.16.0",
+    "platform": "win32",
+    "arch": "x64",
+    "osRelease": "10.0.26200"
+  },
+  "checks": [
+    {
+      "name": "lint-format-typecheck",
+      "passed": true
+    },
+    {
+      "name": "unit-component",
+      "passed": true,
+      "testFiles": 13,
+      "tests": 173
+    },
+    {
+      "name": "production-assets-e2e",
+      "passed": true,
+      "tests": 21
+    },
+    {
+      "name": "packaged-exe-e2e",
+      "passed": true,
+      "tests": 21
+    },
+    {
+      "name": "development-smoke",
+      "passed": true
+    },
+    {
+      "name": "nsis-x64-build",
+      "passed": true
+    },
+    {
+      "name": "real-model-scalar-edit-scale",
+      "passed": true,
+      "nodes": [
+        1001,
+        10001,
+        50001,
+        100000
+      ],
+      "editsPerSize": 3
+    },
+    {
+      "name": "100000-node-sort-undo",
+      "passed": true
+    },
+    {
+      "name": "100001-node-limit-degradation",
+      "passed": true
+    }
+  ],
+  "features": [
+    "Controlled single-node HTML5 drag and drop with destination feedback",
+    "Accessible move up/down and JSON Pointer destination form",
+    "Same-container and cross-container moves preserve subtree IDs",
+    "Cycle, root, name collision, type, depth and revision guards",
+    "Ordinal object-key and homogeneous scalar-array stable sorting",
+    "Exact decimal numeric comparison without Number coercion",
+    "Shared Monaco undo/redo transactions",
+    "Cached immutable projection ID indices",
+    "Verified scalar range projection update and compact Worker response",
+    "Stable minimal tree topology with mounted-row value subscriptions"
+  ],
+  "limits": {
+    "maximumTreeNodes": 100000,
+    "maximumAnalysisUtf16": 20971520,
+    "automaticValidationUtf16": 2097152,
+    "maximumFormValueUtf16": 65536,
+    "maximumDepth": 512,
+    "maximumSortableNumericUtf16": 65536,
+    "maximumSortableExponentUtf16": 1024,
+    "changeRecords": 256,
+    "identityHistoryEntries": 8,
+    "identityHistoryNodeReferences": 200000,
+    "identityHistorySourceUtf16": 4194304,
+    "workerTimeoutMs": 15000
+  },
+  "artifact": {
+    "path": "release/JSONEditor-0.5.0-x64-setup.exe",
+    "bytes": 123537544,
+    "sha256": "a5462bd88d03cd724ac56864853a4adf20836abfcca3dfbd910312dbb2345916",
+    "signed": false
+  },
+  "evidence": [
+    "docs/phase5-source-e2e.json",
+    "docs/phase5-e2e.json",
+    "docs/phase5-development-smoke.json",
+    "docs/phase5-performance.json",
+    "docs/phase5-performance-before-row-subscriptions.json"
+  ],
+  "limitations": [
+    "Drag tests dispatch standard DOM HTML5 events; native Windows mouse automation did not complete and physical drag was not manually verified",
+    "Arrays sort automatically only when elements have the same scalar type",
+    "Array-to-object move needs an explicit key through the form",
+    "Scalar fast path requires exact source/version and unchanged structure/key; other edits use strict full parsing",
+    "Range and ID index work remains linear; topology/selection/resize changes may rebuild Arborist indices",
+    "Performance uses synthetic flat arrays, one paste and three sequential edits per size, with no randomized comparison or fixed GC",
+    "Affected structural containers may change whitespace layout; unmodified value and key literal slices are preserved"
+  ],
+  "notPerformed": [
+    "Phase6 file open/save and persistence or OS clipboard APIs",
+    "Physical mouse drag manual verification",
+    "Physical Chinese IME manual verification",
+    "Long-running memory regression",
+    "Linux build and desktop verification",
+    "Installer execution, uninstall, upgrade, signing and publishing"
+  ]
+}

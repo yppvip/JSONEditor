@@ -35,8 +35,26 @@ interface Container {
   pendingKey: { value: string; offset: number; length: number } | null
 }
 
+const indices = new WeakMap<JsonTreeProjection, Map<string, JsonTreeNode>>()
+const topologies = new WeakMap<JsonTreeProjection, object>()
+export function treeTopologyKey(tree: JsonTreeProjection): object {
+  let key = topologies.get(tree)
+  if (!key) {
+    key = {}
+    topologies.set(tree, key)
+  }
+  return key
+}
+export function shareTreeTopology(previous: JsonTreeProjection, next: JsonTreeProjection): void {
+  topologies.set(next, treeTopologyKey(previous))
+}
 export function indexTree(tree: JsonTreeProjection): Map<string, JsonTreeNode> {
-  return new Map(tree.nodes.map((node) => [node.id, node]))
+  let index = indices.get(tree)
+  if (!index) {
+    index = new Map(tree.nodes.map((node) => [node.id, node]))
+    indices.set(tree, index)
+  }
+  return index
 }
 
 export function jsonPointer(node: JsonTreeNode, index: ReadonlyMap<string, JsonTreeNode>): string {

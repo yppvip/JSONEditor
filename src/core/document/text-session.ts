@@ -2,9 +2,10 @@ import { AUTOMATIC_VALIDATION_LIMIT, MAX_TEXT_LENGTH, textLimitDiagnostic } from
 import type { ParseDiagnostic, TextEdit } from './contracts'
 import type { JsonTreeProjection } from '../tree-model/model'
 import type { TreeCommand } from '../commands/tree-commands'
-import { applySourceEdits } from '../commands/tree-commands'
+import { applySourceEdits } from './source-edits'
 import { MAX_CHANGE_RECORDS } from './change-map'
 import type { ChangeBatch, SourceChange } from './change-map'
+import { applyScalarTreePatch } from '../tree-model/scalar-patch'
 import type {
   JsonWorkerRequest,
   JsonWorkerResponse,
@@ -283,15 +284,35 @@ export class TextDocumentSession {
         this.request('validate')
         return
       }
+      let patchedTree: JsonTreeProjection | undefined
+      if (response.treePatch) {
+        try {
+          if (
+            !this.snapshot.tree ||
+            response.treePatch.revision !== response.revision ||
+            current.text.slice(
+              response.treePatch.edit.offset,
+              response.treePatch.edit.offset + response.treePatch.edit.text.length,
+            ) !== response.treePatch.edit.text
+          )
+            throw new Error('Patch source mismatch')
+          patchedTree = applyScalarTreePatch(this.snapshot.tree, response.treePatch)
+        } catch {
+          this.fail('树增量更新的版本或源码不一致；当前文本已保留，请重试后台。')
+          return
+        }
+      }
       this.buffer.setDiagnostics(response.analysis.diagnostics)
       this.publish({
         state: response.analysis.valid ? 'valid' : 'invalid',
         diagnostics: response.analysis.diagnostics,
         diagnosticsTruncated: response.analysis.diagnosticsTruncated,
         durationMs: response.durationMs,
-        ...(response.tree !== undefined
-          ? { tree: response.tree ?? this.snapshot.tree, treeMessage: response.treeMessage ?? '' }
-          : {}),
+        ...(patchedTree
+          ? { tree: patchedTree, treeMessage: '' }
+          : response.tree !== undefined
+            ? { tree: response.tree ?? this.snapshot.tree, treeMessage: response.treeMessage ?? '' }
+            : {}),
         treeError: response.commandError ?? '',
       })
     }

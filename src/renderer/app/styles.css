@@ -149,6 +149,10 @@ button:disabled {
 .json-tree-row.selected {
   background: #e7f0fd;
 }
+.json-tree-row.drop-target {
+  background: #eaf4ff;
+  box-shadow: inset 0 0 0 1px #4b91e2;
+}
 .tree-toggle {
   border: 0;
   padding: 0;
@@ -218,6 +222,27 @@ button:disabled {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
+}
+.tree-drag-handle {
+  flex: 0 0 14px;
+  cursor: grab;
+  color: #8090a4;
+  user-select: none;
+}
+.tree-drag-handle:active {
+  cursor: grabbing;
+}
+.tree-structure {
+  border-top: 1px solid #e5e9ef;
+  margin-top: 12px;
+  padding-top: 6px;
+}
+.tree-structure h3 {
+  font-size: 12px;
+  margin: 6px 0;
+}
+.json-tree-row[data-dragging='true'] {
+  opacity: 0.5;
 }
 .tree-form input:disabled,
 .tree-form textarea:disabled {

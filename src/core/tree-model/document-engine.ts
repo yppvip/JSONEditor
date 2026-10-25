@@ -6,12 +6,16 @@ import type { JsonWorkerRequest, JsonWorkerResult } from '../../shared/json-work
 import { identityAnchors } from '../document/change-map'
 import type { SourceChange } from '../document/change-map'
 import { IdentityHistory } from './identity-history'
+import { applyScalarTreePatch } from './scalar-patch'
+import type { ScalarTreePatch } from './scalar-patch'
+import type { JsonAnalysis } from '../json/engine'
 
 export class JsonDocumentEngine {
   private tree: JsonTreeProjection | null = null
   private source: string | null = null
   private nextNode = 0
   private readonly history = new IdentityHistory()
+  private analysis: JsonAnalysis | null = null
   private pendingIdentity: {
     documentId: string
     revision: number
@@ -19,6 +23,8 @@ export class JsonDocumentEngine {
     hint?: TreeIdentityHint
     changes?: SourceChange[]
     ids?: string[]
+    prepared?: JsonTreeProjection
+    patch?: ScalarTreePatch
   } | null = null
   constructor(private readonly idPrefix: string) {}
 
@@ -27,7 +33,13 @@ export class JsonDocumentEngine {
     const { documentId, revision, requestId, action, text } = request
     const base = { kind: 'result' as const, documentId, revision, requestId, action }
     if (action === 'tree') {
-      const analysis = analyzeJson(text)
+      const analysis =
+        this.source === text &&
+        this.tree?.documentId === documentId &&
+        this.tree.revision === revision &&
+        this.analysis
+          ? this.analysis
+          : analyzeJson(text)
       try {
         if (
           !request.command ||
@@ -45,6 +57,13 @@ export class JsonDocumentEngine {
               revision: revision + 1,
               source: applySourceEdits(text, result.edits),
               ...(result.identityHint ? { hint: result.identityHint } : {}),
+              ...(result.identityIds ? { ids: result.identityIds } : {}),
+              ...(result.scalarPatch
+                ? {
+                    prepared: applyScalarTreePatch(this.tree, result.scalarPatch),
+                    patch: result.scalarPatch,
+                  }
+                : {}),
               changes: result.edits.map((edit) => ({
                 offset: edit.offset,
                 length: edit.length,
@@ -62,6 +81,28 @@ export class JsonDocumentEngine {
           durationMs: performance.now() - started,
           commandError: error instanceof Error ? error.message : '无法执行节点操作。',
         }
+      }
+    }
+    const prepared = this.pendingIdentity
+    if (
+      action === 'validate' &&
+      prepared?.prepared &&
+      prepared.documentId === documentId &&
+      prepared.revision === revision &&
+      prepared.source === text
+    ) {
+      this.tree = prepared.prepared
+      this.source = text
+      this.analysis = { valid: true, diagnostics: [], diagnosticsTruncated: false }
+      this.pendingIdentity = null
+      this.history.remember(this.tree, request.historyVersion, text)
+      return {
+        ...base,
+        analysis: this.analysis,
+        edits: [],
+        tree: this.tree,
+        ...(prepared.patch ? { treePatch: prepared.patch } : {}),
+        durationMs: performance.now() - started,
       }
     }
     const result = action === 'format' ? formatJson(text) : { ...analyzeJson(text), edits: [] }
@@ -129,6 +170,7 @@ export class JsonDocumentEngine {
       if (projection.tree) {
         this.tree = projection.tree
         this.source = text
+        this.analysis = response.analysis
         this.history.remember(projection.tree, request.historyVersion, text)
       }
     }

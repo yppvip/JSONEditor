@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import type { ReactNode } from 'react'
 import type { JsonNodeType, JsonTreeNode } from '../../core/tree-model/model'
 import type { TreeCommand } from '../../core/commands/tree-commands'
 
@@ -19,6 +20,7 @@ interface Props {
   disabled: boolean
   onCommand: (command: TreeCommand) => void
   onLocate: () => void
+  structuralActions?: ReactNode
 }
 
 export function TreeNodeForm({
@@ -28,6 +30,7 @@ export function TreeNodeForm({
   disabled,
   onCommand,
   onLocate,
+  structuralActions,
 }: Props): React.JSX.Element {
   const [key, setKey] = useState(node.key ?? '')
   const [type, setType] = useState<JsonNodeType>(node.type)
@@ -164,6 +167,7 @@ export function TreeNodeForm({
             <button type="submit">新增子节点</button>
           </form>
         )}
+        {structuralActions}
       </fieldset>
     </div>
   )

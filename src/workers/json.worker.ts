@@ -7,7 +7,13 @@ self.onmessage = (event: MessageEvent<JsonWorkerRequest>): void => {
   const { documentId, revision, requestId } = request
   let response: JsonWorkerResponse
   try {
-    response = engine.execute(request)
+    const result = engine.execute(request)
+    if (result.treePatch) {
+      // The core retains a full projection for history; send only the verified scalar delta.
+      const { tree: _tree, ...compact } = result
+      void _tree
+      response = compact
+    } else response = result
   } catch {
     response = {
       kind: 'failure',

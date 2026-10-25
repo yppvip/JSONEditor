@@ -31,7 +31,7 @@ test('local application loads with isolated IPC and a working bundled Worker', a
     expect(runtime.contextIsolated).toBe(true)
     expect(await page.evaluate(() => window.open('https://example.com') === null)).toBe(true)
     expect(errors).toEqual([])
-    await page.screenshot({ path: 'test-results/phase4-editor.png' })
+    await page.screenshot({ path: 'test-results/phase5-editor.png' })
   } finally {
     await application.close()
   }

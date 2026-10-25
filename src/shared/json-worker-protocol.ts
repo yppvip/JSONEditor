@@ -3,6 +3,7 @@ import type { JsonAnalysis } from '../core/json/engine'
 import type { TreeCommand } from '../core/commands/tree-commands'
 import type { JsonTreeProjection } from '../core/tree-model/model'
 import type { ChangeBatch } from '../core/document/change-map'
+import type { ScalarTreePatch } from '../core/tree-model/scalar-patch'
 
 export interface JsonWorkerRequest extends DocumentVersion {
   requestId: number
@@ -21,6 +22,7 @@ export interface JsonWorkerResult extends DocumentVersion {
   edits: readonly TextEdit[]
   durationMs: number
   tree?: JsonTreeProjection | null
+  treePatch?: ScalarTreePatch
   treeMessage?: string
   commandError?: string
 }

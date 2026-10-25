@@ -1,6 +1,12 @@
 import { analyzeJson } from '../json/engine'
 import type { TextEdit } from '../document/contracts'
 import { indexTree } from '../tree-model/model'
+import { applySourceEdits } from '../document/source-edits'
+import { compileStructuralCommand } from './structural-commands'
+import type { MoveCommand, SortCommand } from './structural-commands'
+import type { ScalarTreePatch } from '../tree-model/scalar-patch'
+import { MAX_TEXT_LENGTH } from '../json/limits'
+export { applySourceEdits } from '../document/source-edits'
 import type {
   JsonNodeType,
   JsonTreeNode,
@@ -9,28 +15,11 @@ import type {
 } from '../tree-model/model'
 
 export type TreeCommand =
+  | MoveCommand
+  | SortCommand
   | { kind: 'update'; nodeId: string; key?: string; valueText?: string; valueType?: JsonNodeType }
   | { kind: 'add'; nodeId: string; key?: string; valueText: string; valueType: JsonNodeType }
   | { kind: 'delete'; nodeId: string }
-
-export function applySourceEdits(text: string, edits: readonly TextEdit[]): string {
-  const parts: string[] = []
-  let boundary = text.length
-  for (const edit of [...edits].sort((a, b) => b.offset - a.offset)) {
-    if (
-      !Number.isSafeInteger(edit.offset) ||
-      !Number.isSafeInteger(edit.length) ||
-      edit.offset < 0 ||
-      edit.length < 0 ||
-      edit.offset + edit.length > boundary
-    )
-      throw new Error('文本编辑范围冲突。')
-    parts.push(text.slice(edit.offset + edit.length, boundary), edit.text)
-    boundary = edit.offset
-  }
-  parts.push(text.slice(0, boundary))
-  return parts.reverse().join('')
-}
 
 function checkedValue(text: string, type: JsonNodeType | undefined): string {
   const raw = text.trim()
@@ -60,7 +49,14 @@ export function compileTreeCommand(
   text: string,
   tree: JsonTreeProjection,
   command: TreeCommand,
-): { edits: TextEdit[]; identityHint?: TreeIdentityHint } {
+): {
+  edits: TextEdit[]
+  identityHint?: TreeIdentityHint
+  identityIds?: string[]
+  scalarPatch?: ScalarTreePatch
+} {
+  if (command.kind === 'move' || command.kind === 'sort')
+    return compileStructuralCommand(text, tree, command)
   if (!tree.editable) throw new Error('存在重复属性名，请先在文本区消除歧义。')
   const index = indexTree(tree)
   const node = index.get(command.nodeId)
@@ -119,6 +115,37 @@ export function compileTreeCommand(
     }
   }
   const predicted = applySourceEdits(text, edits)
+  if (
+    command.kind === 'update' &&
+    command.key === undefined &&
+    edits.length === 1 &&
+    node.type !== 'object' &&
+    node.type !== 'array' &&
+    edits[0]!.text[0] !== '{' &&
+    edits[0]!.text[0] !== '['
+  ) {
+    if (predicted.length > MAX_TEXT_LENGTH) throw new Error('操作超出当前文档支持范围：文本过大。')
+    const raw = edits[0]!.text
+    const type =
+      raw[0] === '"'
+        ? 'string'
+        : raw === 'null'
+          ? 'null'
+          : raw === 'true' || raw === 'false'
+            ? 'boolean'
+            : 'number'
+    return {
+      edits,
+      scalarPatch: {
+        documentId: tree.documentId,
+        baseRevision: tree.revision,
+        revision: tree.revision + 1,
+        nodeId: node.id,
+        type,
+        edit: edits[0]!,
+      },
+    }
+  }
   const analysis = analyzeJson(predicted)
   if (!analysis.valid)
     throw new Error('操作超出当前文档支持范围：' + analysis.diagnostics[0]?.message)

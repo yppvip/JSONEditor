@@ -1,10 +1,27 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import {
+  createContext,
+  useContext,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from 'react'
 import { Tree } from 'react-arborist'
-import type { NodeRendererProps, TreeApi } from 'react-arborist'
+import type { NodeRendererProps, TreeApi, NodeApi } from 'react-arborist'
+import type { ComponentProps } from 'react'
 import { indexTree, jsonPointer } from '../../core/tree-model/model'
 import type { JsonTreeNode, JsonTreeProjection } from '../../core/tree-model/model'
 import type { TreeCommand } from '../../core/commands/tree-commands'
 import { TreeNodeForm } from './TreeNodeForm'
+import { StructuralActions } from './StructuralActions'
+import { TreePresentationStore, presentationRoots } from './presentation-store'
+import type { PresentationNode } from './presentation-store'
+
+const RowStore = createContext<TreePresentationStore | null>(null)
+type PresentationTreeProps = ComponentProps<typeof Tree<PresentationNode>>
 
 function label(node: JsonTreeNode): string {
   const name =
@@ -18,16 +35,40 @@ function label(node: JsonTreeNode): string {
   return name.length > 70 ? name.slice(0, 70) + '…' : name
 }
 
-function TreeRow({ node, style }: NodeRendererProps<JsonTreeNode>): React.JSX.Element {
-  const container = node.data.type === 'object' || node.data.type === 'array'
-  const name = label(node.data)
+function TreeRow({
+  node,
+  style,
+  dragHandle,
+}: NodeRendererProps<PresentationNode>): React.JSX.Element | null {
+  const store = useContext(RowStore)!
+  const nodeId = node.id
+  const subscribe = useCallback(
+    (listener: () => void) => store.subscribe(nodeId, listener),
+    [store, nodeId],
+  )
+  const snapshot = useCallback(() => store.snapshot(nodeId), [store, nodeId])
+  const { node: data, enabled } = useSyncExternalStore(subscribe, snapshot)
+  if (!data) return null
+  const container = data.type === 'object' || data.type === 'array'
+  const name = label(data)
   return (
     <div
       style={style}
-      className={`json-tree-row ${node.isSelected ? 'selected' : ''}`}
+      className={`json-tree-row ${node.isSelected ? 'selected' : ''} ${node.willReceiveDrop ? 'drop-target' : ''}`}
       data-node-id={node.id}
+      data-dragging={node.isDragging}
       onClick={() => node.select()}
     >
+      {enabled && data.parentId !== null && (
+        <div
+          ref={dragHandle}
+          className="tree-drag-handle"
+          title={`拖动 ${name}`}
+          aria-label={`拖动 ${name}`}
+        >
+          ⠿
+        </div>
+      )}
       <button
         className="tree-toggle"
         disabled={!container}
@@ -40,8 +81,8 @@ function TreeRow({ node, style }: NodeRendererProps<JsonTreeNode>): React.JSX.El
         {container ? (node.isOpen ? '▾' : '▸') : '·'}
       </button>
       <span className="tree-key">{name}</span>
-      <span className="tree-type">{node.data.type}</span>
-      <span className="tree-preview">{node.data.preview}</span>
+      <span className="tree-type">{data.type}</span>
+      <span className="tree-preview">{data.preview}</span>
     </div>
   )
 }
@@ -66,22 +107,39 @@ export function JsonTreeEditor({
   onLocate,
 }: Props): React.JSX.Element {
   const area = useRef<HTMLDivElement>(null)
-  const api = useRef<TreeApi<JsonTreeNode> | null>(null)
+  const api = useRef<TreeApi<PresentationNode> | null>(null)
+  const [store] = useState(() => new TreePresentationStore())
   const [size, setSize] = useState({ height: 240, width: 360 })
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const index = useMemo(() => (tree ? indexTree(tree) : new Map<string, JsonTreeNode>()), [tree])
-  const roots = useMemo(
-    () => (tree && index.get(tree.rootId) ? [index.get(tree.rootId)!] : []),
-    [tree, index],
+  const roots = tree ? presentationRoots(tree) : []
+  const selected = index.get(selectedId ?? tree?.rootId ?? '') ?? index.get(tree?.rootId ?? '')
+  const rootId = tree?.rootId
+  const initialOpenState = useMemo(() => (rootId ? { [rootId]: true } : {}), [rootId])
+  // Arborist caches this flag while building topology. Dynamic read-only state hides the
+  // source handle and is independently enforced by canDrop and the document command gate.
+  const disableDrag = useCallback((node: PresentationNode) => node.parentId === null, [])
+  const disableDrop = useCallback<
+    Exclude<PresentationTreeProps['disableDrop'], string | boolean | undefined>
+  >(
+    ({ parentNode, dragNodes, index: position }) =>
+      dragNodes.length !== 1 ||
+      !parentNode ||
+      !store.canDrop(dragNodes[0]!.id, parentNode.id, position),
+    [store],
   )
-  const selected = index.get(selectedId ?? tree?.rootId ?? '') ?? roots[0]
-  const children = useCallback(
-    (node: JsonTreeNode) =>
-      node.type === 'object' || node.type === 'array'
-        ? node.children.map((id) => index.get(id)!)
-        : null,
-    [index],
+  const move = useCallback<NonNullable<PresentationTreeProps['onMove']>>(
+    ({ parentId, dragIds, index: position }) => {
+      if (parentId && dragIds.length === 1) store.drop(dragIds[0]!, parentId, position)
+    },
+    [store],
   )
+  const select = useCallback((nodes: NodeApi<PresentationNode>[]) => {
+    if (nodes[0]) setSelectedId(nodes[0].id)
+  }, [])
+  useLayoutEffect(() => {
+    store.update(tree, current && !!tree?.editable, onCommand)
+  }, [store, tree, current, onCommand])
   useEffect(() => {
     if (!area.current) return
     const observer = new ResizeObserver(([entry]) => {
@@ -124,32 +182,33 @@ export function JsonTreeEditor({
       </p>
       <div className="tree-viewport" ref={area}>
         {tree && (
-          <Tree<JsonTreeNode>
-            key={tree.rootId}
-            ref={api}
-            data={roots}
-            idAccessor="id"
-            childrenAccessor={children}
-            width={contentWidth}
-            height={Math.max(60, size.height - (contentWidth > size.width ? 16 : 0))}
-            rowHeight={28}
-            overscanCount={4}
-            indent={16}
-            openByDefault={false}
-            initialOpenState={{ [tree.rootId]: true }}
-            selection={selected?.id ?? tree.rootId}
-            disableDrag
-            disableDrop
-            disableEdit
-            disableMultiSelection
-            selectionFollowsFocus
-            onSelect={(nodes) => {
-              if (nodes[0]) setSelectedId(nodes[0].id)
-            }}
-            aria-label="JSON 节点树"
-          >
-            {TreeRow}
-          </Tree>
+          <RowStore.Provider value={store}>
+            <Tree<PresentationNode>
+              key={tree.rootId}
+              ref={api}
+              data={roots}
+              idAccessor="id"
+              childrenAccessor="children"
+              width={contentWidth}
+              height={Math.max(60, size.height - (contentWidth > size.width ? 16 : 0))}
+              rowHeight={28}
+              overscanCount={4}
+              indent={16}
+              openByDefault={false}
+              initialOpenState={initialOpenState}
+              selection={selected?.id ?? tree.rootId}
+              disableDrag={disableDrag}
+              disableDrop={disableDrop}
+              onMove={move}
+              disableEdit
+              disableMultiSelection
+              selectionFollowsFocus
+              onSelect={select}
+              aria-label="JSON 节点树"
+            >
+              {TreeRow}
+            </Tree>
+          </RowStore.Provider>
         )}
       </div>
       {error && (
@@ -170,6 +229,14 @@ export function JsonTreeEditor({
             disabled={disabled}
             onCommand={(command) => onCommand(command, tree.revision)}
             onLocate={() => onLocate(selected, tree.revision)}
+            structuralActions={
+              <StructuralActions
+                tree={tree}
+                node={selected}
+                disabled={disabled}
+                onCommand={(command) => onCommand(command, tree.revision)}
+              />
+            }
           />
         </>
       )}

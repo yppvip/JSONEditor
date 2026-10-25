@@ -23,7 +23,7 @@ try {
       )
     }, text)
   }
-  for (const elements of [1_000, 10_000, 50_000]) {
+  for (const elements of [1_000, 10_000, 50_000, 99_999]) {
     const text = JSON.stringify(Array.from({ length: elements }, (_, index) => index))
     const started = performance.now()
     await paste(text)
@@ -38,16 +38,22 @@ try {
       .locator('.tree-key')
       .filter({ hasText: /^\[0\]$/ })
       .click()
-    await page
-      .getByRole('textbox', { name: '节点 JSON 值', exact: true })
-      .fill('900719925474099312345')
-    const editStarted = performance.now()
-    await page.getByRole('button', { name: '应用节点修改' }).click()
-    await expect(page.getByTestId('tree-status')).toHaveText('树可编辑', { timeout: 20_000 })
-    await expect(page.getByRole('textbox', { name: '节点 JSON 值', exact: true })).toHaveValue(
+    const editSamplesMs = []
+    for (const value of [
       '900719925474099312345',
-    )
-    const editToTreeMs = performance.now() - editStarted
+      '900719925474099312346',
+      '900719925474099312347',
+    ]) {
+      await page.getByRole('textbox', { name: '节点 JSON 值', exact: true }).fill(value)
+      const editStarted = performance.now()
+      await page.getByRole('button', { name: '应用节点修改' }).click()
+      await expect(page.getByTestId('tree-status')).toHaveText('树可编辑', { timeout: 20_000 })
+      await expect(page.getByRole('textbox', { name: '节点 JSON 值', exact: true })).toHaveValue(
+        value,
+      )
+      editSamplesMs.push(performance.now() - editStarted)
+    }
+    const editToTreeMs = [...editSamplesMs].sort((a, b) => a - b)[1]
     const memory = await application.evaluate(({ app }) =>
       app.getAppMetrics().map(({ type, memory }) => ({ type, memory })),
     )
@@ -57,6 +63,7 @@ try {
       bytes: Buffer.byteLength(text),
       pasteToTreeMs,
       editToTreeMs,
+      editSamplesMs,
       mountedRows,
       processMemory: memory,
     }
@@ -65,13 +72,35 @@ try {
       JSON.stringify({ elements, nodes: elements + 1, pasteToTreeMs, editToTreeMs, mountedRows }),
     )
   }
+  await page.locator('.tree-key').filter({ hasText: /^\$$/ }).click()
+  const sortStarted = performance.now()
+  await page.getByRole('button', { name: '子节点降序', exact: true }).click()
+  await expect(page.getByTestId('tree-status')).toHaveText('树可编辑', { timeout: 20_000 })
+  await expect(
+    page
+      .locator('.json-tree-row')
+      .filter({ has: page.locator('.tree-key').filter({ hasText: /^\[1\]$/ }) })
+      .locator('.tree-preview'),
+  ).toHaveText('99998')
+  const sort100kMs = performance.now() - sortStarted
+  const undoStarted = performance.now()
+  await page.getByRole('button', { name: '撤销', exact: true }).click()
+  await expect(page.getByTestId('tree-status')).toHaveText('树可编辑', { timeout: 20_000 })
+  await expect(
+    page
+      .locator('.json-tree-row')
+      .filter({ has: page.locator('.tree-key').filter({ hasText: /^\[1\]$/ }) })
+      .locator('.tree-preview'),
+  ).toHaveText('1')
+  const undo100kMs = performance.now() - undoStarted
+  console.log(JSON.stringify({ sort100kMs, undo100kMs }))
   await paste(JSON.stringify(Array.from({ length: 100_000 }, () => 0)))
   await expect(page.getByTestId('tree-status')).toContainText('节点超过 100,000', {
     timeout: 20_000,
   })
   await expect(page.getByTestId('json-status')).toHaveText(/^JSON 有效/)
   await writeFile(
-    'docs/phase4-performance.json',
+    'docs/phase5-performance.json',
     JSON.stringify(
       {
         capturedAtUtc: new Date().toISOString(),
@@ -84,11 +113,13 @@ try {
           totalMemoryBytes: totalmem(),
         },
         samples,
+        structural: { nodes: 100_000, sort100kMs, undo100kMs },
         limitDegradationPassed: true,
         limitations: [
-          'One run per size on synthetic flat arrays',
-          'Wall-clock timings include paste, debounce, Worker transfer, full model rebuild, React and automation overhead',
-          'Full metadata/index rebuild remains linear; no incremental parser or index',
+          'One paste and three sequential scalar edits per size on synthetic flat arrays; editToTreeMs is their median',
+          'First scalar edit changes source length; following edits keep length constant',
+          'Wall-clock timings include paste, debounce, Worker transfer, projection/index update, React and automation overhead',
+          'Scalar updates avoid full reparse/transfer and preserve Arborist topology; range and ID index updates still scan nodes',
           'No deep/mixed structures or long-running memory regression claim',
         ],
       },

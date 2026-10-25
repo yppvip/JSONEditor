@@ -1,0 +1,214 @@
+{
+  "capturedAtUtc": "2026-10-25T12:08:56.180Z",
+  "environment": {
+    "platform": "win32",
+    "arch": "x64",
+    "osRelease": "10.0.26200",
+    "cpu": "Intel(R) Core(TM) i5-9400F CPU @ 2.90GHz",
+    "logicalProcessors": 6,
+    "totalMemoryBytes": 17140072448
+  },
+  "samples": [
+    {
+      "elements": 1000,
+      "nodes": 1001,
+      "bytes": 3891,
+      "pasteToTreeMs": 417.9421,
+      "editToTreeMs": 82.85630000000015,
+      "editSamplesMs": [
+        91.27009999999996,
+        82.85630000000015,
+        68.69290000000024
+      ],
+      "mountedRows": 11,
+      "processMemory": [
+        {
+          "type": "Browser",
+          "memory": {
+            "workingSetSize": 110980,
+            "peakWorkingSetSize": 112460,
+            "privateBytes": 43656
+          }
+        },
+        {
+          "type": "GPU",
+          "memory": {
+            "workingSetSize": 99248,
+            "peakWorkingSetSize": 100880,
+            "privateBytes": 116732
+          }
+        },
+        {
+          "type": "Utility",
+          "memory": {
+            "workingSetSize": 49220,
+            "peakWorkingSetSize": 49220,
+            "privateBytes": 11396
+          }
+        },
+        {
+          "type": "Tab",
+          "memory": {
+            "workingSetSize": 201736,
+            "peakWorkingSetSize": 204440,
+            "privateBytes": 141616
+          }
+        }
+      ]
+    },
+    {
+      "elements": 10000,
+      "nodes": 10001,
+      "bytes": 48891,
+      "pasteToTreeMs": 898.8960999999999,
+      "editToTreeMs": 109.92219999999998,
+      "editSamplesMs": [
+        136.5236,
+        107.28909999999996,
+        109.92219999999998
+      ],
+      "mountedRows": 11,
+      "processMemory": [
+        {
+          "type": "Browser",
+          "memory": {
+            "workingSetSize": 111796,
+            "peakWorkingSetSize": 112460,
+            "privateBytes": 44504
+          }
+        },
+        {
+          "type": "GPU",
+          "memory": {
+            "workingSetSize": 100992,
+            "peakWorkingSetSize": 101336,
+            "privateBytes": 121556
+          }
+        },
+        {
+          "type": "Utility",
+          "memory": {
+            "workingSetSize": 49220,
+            "peakWorkingSetSize": 49220,
+            "privateBytes": 11396
+          }
+        },
+        {
+          "type": "Tab",
+          "memory": {
+            "workingSetSize": 299784,
+            "peakWorkingSetSize": 299784,
+            "privateBytes": 238312
+          }
+        }
+      ]
+    },
+    {
+      "elements": 50000,
+      "nodes": 50001,
+      "bytes": 288891,
+      "pasteToTreeMs": 933.6373000000003,
+      "editToTreeMs": 241.9992000000002,
+      "editSamplesMs": [
+        282.64999999999964,
+        241.9992000000002,
+        194.71079999999984
+      ],
+      "mountedRows": 11,
+      "processMemory": [
+        {
+          "type": "Browser",
+          "memory": {
+            "workingSetSize": 111200,
+            "peakWorkingSetSize": 112760,
+            "privateBytes": 44132
+          }
+        },
+        {
+          "type": "GPU",
+          "memory": {
+            "workingSetSize": 101084,
+            "peakWorkingSetSize": 101428,
+            "privateBytes": 121552
+          }
+        },
+        {
+          "type": "Utility",
+          "memory": {
+            "workingSetSize": 49220,
+            "peakWorkingSetSize": 49220,
+            "privateBytes": 11396
+          }
+        },
+        {
+          "type": "Tab",
+          "memory": {
+            "workingSetSize": 647468,
+            "peakWorkingSetSize": 647588,
+            "privateBytes": 596372
+          }
+        }
+      ]
+    },
+    {
+      "elements": 99999,
+      "nodes": 100000,
+      "bytes": 588885,
+      "pasteToTreeMs": 1071.0092000000004,
+      "editToTreeMs": 317.15120000000024,
+      "editSamplesMs": [
+        385.77930000000015,
+        284.8873999999996,
+        317.15120000000024
+      ],
+      "mountedRows": 11,
+      "processMemory": [
+        {
+          "type": "Browser",
+          "memory": {
+            "workingSetSize": 112064,
+            "peakWorkingSetSize": 114300,
+            "privateBytes": 44756
+          }
+        },
+        {
+          "type": "GPU",
+          "memory": {
+            "workingSetSize": 101252,
+            "peakWorkingSetSize": 101428,
+            "privateBytes": 120924
+          }
+        },
+        {
+          "type": "Utility",
+          "memory": {
+            "workingSetSize": 49224,
+            "peakWorkingSetSize": 49224,
+            "privateBytes": 11400
+          }
+        },
+        {
+          "type": "Tab",
+          "memory": {
+            "workingSetSize": 965676,
+            "peakWorkingSetSize": 965816,
+            "privateBytes": 914180
+          }
+        }
+      ]
+    }
+  ],
+  "structural": {
+    "nodes": 100000,
+    "sort100kMs": 1117.5006999999996,
+    "undo100kMs": 1021.9812000000002
+  },
+  "limitDegradationPassed": true,
+  "limitations": [
+    "One paste and three sequential scalar edits per size on synthetic flat arrays; editToTreeMs is their median",
+    "First scalar edit changes source length; following edits keep length constant",
+    "Wall-clock timings include paste, debounce, Worker transfer, projection/index update, React and automation overhead",
+    "Scalar projection updates avoid full reparse/transfer but still scan node ranges and rebuild Arborist indices",
+    "No deep/mixed structures or long-running memory regression claim"
+  ]
+}
