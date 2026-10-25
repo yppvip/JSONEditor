@@ -47,7 +47,7 @@ try {
   await mkdir('test-results', { recursive: true })
   await page.screenshot({ path: 'test-results/development.png' })
   await writeFile(
-    'docs/phase5-development-smoke.json',
+    'docs/phase6-development-smoke.json',
     JSON.stringify(
       {
         capturedAtUtc: new Date().toISOString(),

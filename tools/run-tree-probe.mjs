@@ -100,7 +100,7 @@ try {
   })
   await expect(page.getByTestId('json-status')).toHaveText(/^JSON 有效/)
   await writeFile(
-    'docs/phase5-performance.json',
+    'docs/phase6-performance.json',
     JSON.stringify(
       {
         capturedAtUtc: new Date().toISOString(),
@@ -128,5 +128,10 @@ try {
     ) + '\n',
   )
 } finally {
+  await application
+    .evaluate(({ dialog }) => {
+      dialog.showMessageBox = async () => ({ response: 1, checkboxChecked: false })
+    })
+    .catch(() => {})
   await application.close()
 }

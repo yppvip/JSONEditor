@@ -1,5 +1,6 @@
 import { app, BrowserWindow, ipcMain, net, protocol, session } from 'electron'
-import { join } from 'node:path'
+import { join, isAbsolute } from 'node:path'
+import { mkdir } from 'node:fs/promises'
 import { pathToFileURL } from 'node:url'
 import { APP_INFO_CHANNEL } from '../shared/desktop-api'
 import type { AppInfo } from '../shared/desktop-api'
@@ -9,6 +10,7 @@ import {
   isTrustedFrame,
   resolveApplicationAsset,
 } from './security'
+import { DesktopHandlers } from './desktop-handlers'
 
 protocol.registerSchemesAsPrivileged([
   {
@@ -23,6 +25,7 @@ const developmentUrl =
     : undefined
 const rendererUrl = developmentUrl ?? APPLICATION_URL
 const policy = contentSecurityPolicy(developmentUrl ? new URL(developmentUrl).origin : undefined)
+const desktop = new DesktopHandlers(rendererUrl)
 
 async function createWindow(): Promise<void> {
   const window = new BrowserWindow({
@@ -46,12 +49,18 @@ async function createWindow(): Promise<void> {
     if (url !== rendererUrl) event.preventDefault()
   })
   window.webContents.on('will-attach-webview', (event) => event.preventDefault())
+  desktop.attach(window)
   await window.loadURL(rendererUrl)
 }
 
 app
   .whenReady()
   .then(async () => {
+    const profile = app.commandLine.getSwitchValue('user-data-dir')
+    if (profile && isAbsolute(profile)) {
+      await mkdir(profile, { recursive: true })
+      app.setPath('userData', profile)
+    }
     app.setAppUserModelId('io.jsoneditor.desktop')
     const rendererRoot = join(__dirname, '../renderer')
     protocol.handle('app', async (request) => {
@@ -89,6 +98,7 @@ app
         electron: process.versions.electron,
       }
     })
+    desktop.register()
     await createWindow()
     app.on('activate', () => {
       if (BrowserWindow.getAllWindows().length === 0) void createWindow()

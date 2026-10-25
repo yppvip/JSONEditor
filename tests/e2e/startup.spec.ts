@@ -1,5 +1,6 @@
 import { _electron as electron, expect, test } from '@playwright/test'
 import { resolve } from 'node:path'
+import { closeApp } from './close-app'
 
 test('local application loads with isolated IPC and a working bundled Worker', async () => {
   const executablePath = process.env.JSONEDITOR_EXECUTABLE
@@ -24,15 +25,28 @@ test('local application loads with isolated IPC and a working bundled Worker', a
     expect(boundary).toEqual({
       require: 'undefined',
       process: 'undefined',
-      methods: ['getAppInfo'],
+      methods: [
+        'getAppInfo',
+        'openFile',
+        'getRecentFiles',
+        'openRecent',
+        'saveFile',
+        'releaseFile',
+        'confirmUnsaved',
+        'readClipboard',
+        'writeClipboard',
+        'onAction',
+        'onCloseRequested',
+        'replyClose',
+      ],
     })
     const runtime = await page.evaluate(() => window.desktop.getAppInfo())
     expect(runtime.sandboxed).toBe(true)
     expect(runtime.contextIsolated).toBe(true)
     expect(await page.evaluate(() => window.open('https://example.com') === null)).toBe(true)
     expect(errors).toEqual([])
-    await page.screenshot({ path: 'test-results/phase5-editor.png' })
+    await page.screenshot({ path: 'test-results/phase6-editor.png' })
   } finally {
-    await application.close()
+    await closeApp(application)
   }
 })

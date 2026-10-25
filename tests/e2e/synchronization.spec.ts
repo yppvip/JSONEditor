@@ -1,6 +1,7 @@
 import { _electron as electron, expect, test } from '@playwright/test'
 import type { Page } from '@playwright/test'
 import { resolve } from 'node:path'
+import { closeApp } from './close-app'
 
 async function runEditor(run: (page: Page) => Promise<void>): Promise<void> {
   const executablePath = process.env.JSONEDITOR_EXECUTABLE
@@ -14,7 +15,7 @@ async function runEditor(run: (page: Page) => Promise<void>): Promise<void> {
     await ready(page)
     await run(page)
   } finally {
-    await app.close()
+    await closeApp(app)
   }
 }
 

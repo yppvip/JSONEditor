@@ -9,6 +9,7 @@ import { IdentityHistory } from './identity-history'
 import { applyScalarTreePatch } from './scalar-patch'
 import type { ScalarTreePatch } from './scalar-patch'
 import type { JsonAnalysis } from '../json/engine'
+import { transformClipboardJson } from '../json/clipboard-transform'
 
 export class JsonDocumentEngine {
   private tree: JsonTreeProjection | null = null
@@ -32,6 +33,10 @@ export class JsonDocumentEngine {
     const started = performance.now()
     const { documentId, revision, requestId, action, text } = request
     const base = { kind: 'result' as const, documentId, revision, requestId, action }
+    if (action === 'copy-format' || action === 'copy-compact') {
+      const output = transformClipboardJson(text, action === 'copy-format' ? 'format' : 'compact')
+      return { ...base, ...output, edits: [], durationMs: performance.now() - started }
+    }
     if (action === 'tree') {
       const analysis =
         this.source === text &&

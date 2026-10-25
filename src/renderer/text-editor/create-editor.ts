@@ -17,6 +17,7 @@ import type { JsonWorkerResponse, JsonWorkerTransport } from '../../shared/json-
 import { MAX_FORM_VALUE_LENGTH } from '../../core/tree-model/model'
 import type { JsonTreeNode } from '../../core/tree-model/model'
 import type { TreeCommand } from '../../core/commands/tree-commands'
+import type { DocumentSnapshot } from './desktop-session'
 
 Object.assign(globalThis, { MonacoEnvironment: { getWorker: () => new EditorWorker() } })
 jsonDefaults.setDiagnosticsOptions({ validate: false, enableSchemaRequest: false })
@@ -39,6 +40,7 @@ export interface LocatedDiagnostic extends ParseDiagnostic {
 }
 export interface EditorStatus extends DocumentStatus {
   problems: readonly LocatedDiagnostic[]
+  historyVersion: number
 }
 export interface EditorView {
   validate: () => void
@@ -51,6 +53,11 @@ export interface EditorView {
   readNodeValue: (node: JsonTreeNode) => string | null
   locateNode: (node: JsonTreeNode, baseRevision: number) => void
   dispose: () => void
+  getSnapshot: () => DocumentSnapshot
+  getHistoryVersion: () => number
+  replaceText: (text: string) => boolean
+  transformClipboard: (mode: 'format' | 'compact') => Promise<string>
+  setReadOnly: (locked: boolean) => void
 }
 
 function createTransport(): JsonWorkerTransport {
@@ -79,10 +86,11 @@ const initialText = '{\n  "message": "Hello, JSON",\n  "items": [1, true, null]\
 export function createEditor(
   container: HTMLElement,
   onStatus: (status: EditorStatus) => void,
+  text = initialText,
 ): EditorView {
   const documentId = `untitled-${++sequence}`
   const model = monaco.editor.createModel(
-    initialText,
+    text,
     'json',
     monaco.Uri.parse(`inmemory://jsoneditor/${documentId}.json`),
   )
@@ -110,6 +118,7 @@ export function createEditor(
     folding: false,
     stickyScroll: { enabled: false },
   })
+  let locked = false
   const session = new TextDocumentSession(
     documentId,
     {
@@ -117,6 +126,7 @@ export function createEditor(
       getLength: () => model.getValueLength(),
       getHistoryVersion: () => model.getAlternativeVersionId(),
       applyEdits: (edits, origin = 'format') => {
+        if (locked) return false
         editor.pushUndoStop()
         const applied = editor.executeEdits(
           `json-${origin}`,
@@ -163,6 +173,7 @@ export function createEditor(
     const status = session.getSnapshot()
     onStatus({
       ...status,
+      historyVersion: model.getAlternativeVersionId(),
       problems: status.diagnostics.map((diagnostic) => {
         const position = model.getPositionAt(diagnostic.offset)
         return { ...diagnostic, line: position.lineNumber, column: position.column }
@@ -195,17 +206,42 @@ export function createEditor(
   })
   return {
     validate: () => session.request('validate'),
-    format: () => session.request('format'),
+    format: () => {
+      if (!locked) session.request('format')
+    },
     undo: () => {
+      if (locked) return
       editor.focus()
       editor.trigger('toolbar', 'undo', null)
     },
     redo: () => {
+      if (locked) return
       editor.focus()
       editor.trigger('toolbar', 'redo', null)
     },
     retry: () => session.restart(),
-    editTree: (command, revision) => session.editTree(command, revision),
+    editTree: (command, revision) => !locked && session.editTree(command, revision),
+    getSnapshot: () => ({
+      text: model.getValue(),
+      revision: session.getSnapshot().revision,
+      historyVersion: model.getAlternativeVersionId(),
+      composing: session.getSnapshot().composing,
+    }),
+    getHistoryVersion: () => model.getAlternativeVersionId(),
+    setReadOnly: (value) => {
+      locked = value
+      editor.updateOptions({ readOnly: value })
+    },
+    transformClipboard: (mode) => session.transformClipboard(mode),
+    replaceText: (value) => {
+      if (locked || session.getSnapshot().composing) return false
+      editor.pushUndoStop()
+      const applied = editor.executeEdits('desktop-paste', [
+        { range: model.getFullModelRange(), text: value },
+      ])
+      editor.pushUndoStop()
+      return applied
+    },
     readNodeValue: (node) => {
       const status = session.getSnapshot()
       if (

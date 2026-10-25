@@ -1,0 +1,149 @@
+{
+  "capturedAtUtc": "2026-10-25T14:00:12.2149417Z",
+  "timezone": "Asia/Shanghai",
+  "phase": "Phase6",
+  "version": "0.6.0",
+  "status": "passed",
+  "environment": {
+    "node": "v24.16.0",
+    "platform": "win32",
+    "arch": "x64",
+    "osRelease": "10.0.26200"
+  },
+  "checks": [
+    {
+      "name": "lint-format-typecheck",
+      "passed": true
+    },
+    {
+      "name": "unit-component",
+      "passed": true,
+      "testFiles": 18,
+      "tests": 215
+    },
+    {
+      "name": "production-assets-e2e",
+      "passed": true,
+      "tests": 28
+    },
+    {
+      "name": "packaged-exe-e2e",
+      "passed": true,
+      "tests": 28
+    },
+    {
+      "name": "actual-disk-utf8-bom-crlf-invalid-json-save",
+      "passed": true
+    },
+    {
+      "name": "external-file-conflict-and-save-as",
+      "passed": true
+    },
+    {
+      "name": "recent-files-restart-persistence",
+      "passed": true
+    },
+    {
+      "name": "unsaved-close-cancel-save-and-input-lock",
+      "passed": true
+    },
+    {
+      "name": "clipboard-ipc-worker-buffer-with-isolated-native-port",
+      "passed": true
+    },
+    {
+      "name": "native-dialog-return-port-fixtures",
+      "passed": true
+    },
+    {
+      "name": "development-smoke",
+      "passed": true
+    },
+    {
+      "name": "nsis-x64-build",
+      "passed": true
+    },
+    {
+      "name": "tree-scale-regression",
+      "passed": true,
+      "nodes": [
+        1001,
+        10001,
+        50001,
+        100000
+      ]
+    },
+    {
+      "name": "100001-node-degradation",
+      "passed": true
+    }
+  ],
+  "features": [
+    "New/open/save/save-as with owner-scoped file capabilities",
+    "Current-source persistence including invalid JSON and exact numeric literals",
+    "UTF-8/BOM and consistent LF/CRLF preservation",
+    "Bounded file reads and lossless-encoding guards",
+    "Exclusive temp creation, fsync and rename with external-content conflict checks",
+    "Cleanup restricted to temporary files created by the current write",
+    "History-version dirty tracking and save-while-editing protection",
+    "Revision-checked asynchronous load and clipboard replacement",
+    "Unsaved save/discard/cancel decisions and nonce-bound protected close",
+    "Editor input locked before allowing native close",
+    "Raw/formatted/compact current-text clipboard copy and undoable full-document paste",
+    "Asynchronous Electron 45 clipboard API with awaited failures",
+    "Main menu and consistent native/DOM shortcut routing",
+    "Ten persisted application recent files in configurable userData",
+    "Exact IPC argument schemas and trusted-main-frame checks"
+  ],
+  "limits": {
+    "maximumFileBytes": 67108864,
+    "readChunkBytes": 65536,
+    "maximumDocumentUtf16": 20971520,
+    "maximumClipboardUtf16": 20971520,
+    "recentFiles": 10,
+    "maximumCapabilitiesPerWindow": 8,
+    "encodings": [
+      "UTF-8",
+      "UTF-8 BOM"
+    ],
+    "lineEndings": [
+      "LF",
+      "CRLF"
+    ],
+    "mixedLineEndings": "rejected without replacing current text",
+    "duplicateBomAndUnpairedSurrogates": "rejected for lossless persistence",
+    "automaticValidationUtf16": 2097152,
+    "maximumTreeNodes": 100000,
+    "maximumDepth": 512,
+    "workerTimeoutMs": 15000
+  },
+  "artifact": {
+    "path": "release/JSONEditor-0.6.0-x64-setup.exe",
+    "bytes": 123542624,
+    "sha256": "9efe26c292a1b939ec87217615e8f2abbb7d8580232ea9919d9a83e6663e36e2",
+    "signed": false
+  },
+  "evidence": [
+    "docs/phase6-source-e2e.json",
+    "docs/phase6-e2e.json",
+    "docs/phase6-development-smoke.json",
+    "docs/phase6-performance.json"
+  ],
+  "limitations": [
+    "Native file-dialog choices are supplied by test fixtures; file service, IPC and disk bytes are real",
+    "Clipboard native read/write ports are replaced in E2E to avoid changing the user's system clipboard",
+    "No OS clipboard or physical dialog manual acceptance is claimed",
+    "Hash checks reduce conflicts but do not provide an OS-level atomic compare-and-swap or cross-process lock",
+    "No autosave, crash recovery, power-loss durability verification or external-file watching",
+    "Recent files are application history rather than OS recent-document integration",
+    "Scale regression uses synthetic flat arrays with one paste and three sequential scalar edits per size"
+  ],
+  "notPerformed": [
+    "Phase7 release acceptance",
+    "Native clipboard and dialog manual acceptance",
+    "Physical Chinese IME and mouse drag manual verification",
+    "Linux build and desktop verification",
+    "Power-loss, forced termination and long-running memory regression",
+    "Installer execution, uninstall, upgrade, signing and publishing"
+  ]
+}

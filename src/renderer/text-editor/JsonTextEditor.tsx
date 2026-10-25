@@ -1,8 +1,10 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { initialDocumentStatus } from '../../core/document/text-session'
 import { createEditor } from './create-editor'
 import type { EditorStatus, EditorView } from './create-editor'
 import { JsonTreeEditor } from '../tree-editor/JsonTreeEditor'
+import { DesktopDocumentSession } from './desktop-session'
+import { desktopShortcut } from '../../shared/desktop-shortcuts'
 
 const labels = {
   waiting: '正在准备编辑环境…',
@@ -17,23 +19,190 @@ const labels = {
 export function JsonTextEditor(): React.JSX.Element {
   const container = useRef<HTMLDivElement>(null)
   const view = useRef<EditorView | null>(null)
-  const [status, setStatus] = useState<EditorStatus>({ ...initialDocumentStatus, problems: [] })
+  const [status, setStatus] = useState<EditorStatus>({
+    ...initialDocumentStatus,
+    problems: [],
+    historyVersion: 1,
+  })
+  const [documentKey, setDocumentKey] = useState(0)
+  const pendingLoad = useRef<{
+    text: string
+    resolve: () => void
+    reject: (error: Error) => void
+  } | null>(null)
+  const [files] = useState(() => new DesktopDocumentSession(window.desktop))
+  const fileStatus = useSyncExternalStore(files.subscribe, files.getSnapshot)
   useEffect(() => {
     if (!container.current) return
-    const editor = createEditor(container.current, setStatus)
-    view.current = editor
+    const load = pendingLoad.current
+    let editor: EditorView
+    try {
+      editor = createEditor(
+        container.current,
+        (next) => {
+          setStatus(next)
+          files.observe(next.historyVersion)
+        },
+        load?.text,
+      )
+      view.current = editor
+      files.connect({
+        lock: editor.setReadOnly,
+        undo: editor.undo,
+        redo: editor.redo,
+        snapshot: editor.getSnapshot,
+        historyVersion: editor.getHistoryVersion,
+        load: (text) =>
+          new Promise<void>((resolve, reject) => {
+            editor.setReadOnly(true)
+            pendingLoad.current = { text, resolve, reject }
+            setDocumentKey((key) => key + 1)
+          }),
+        paste: editor.replaceText,
+        transform: editor.transformClipboard,
+      })
+      files.attached(editor.getHistoryVersion())
+      pendingLoad.current = null
+      load?.resolve()
+    } catch (error) {
+      pendingLoad.current = null
+      load?.reject(error instanceof Error ? error : new Error('编辑器启动失败。'))
+      return
+    }
     return () => {
       view.current = null
       editor.dispose()
     }
-  }, [])
+  }, [documentKey, files])
+  useEffect(() => {
+    files.activate()
+    void files.refreshRecent()
+    const action = window.desktop.onAction((action) => {
+      void files.dispatch(action)
+    })
+    const close = window.desktop.onCloseRequested((id) => {
+      void files.requestClose(id)
+    })
+    const keyboard = (event: KeyboardEvent): void => {
+      if (event.defaultPrevented) return
+      const action = desktopShortcut({
+        key: event.key,
+        control: event.ctrlKey,
+        meta: event.metaKey,
+        shift: event.shiftKey,
+        alt: event.altKey,
+        isComposing: event.isComposing,
+        isAutoRepeat: event.repeat,
+      })
+      if (action) {
+        event.preventDefault()
+        event.stopPropagation()
+        void files.dispatch(action)
+      }
+    }
+    window.addEventListener('keydown', keyboard, true)
+    return () => {
+      window.removeEventListener('keydown', keyboard, true)
+      action()
+      close()
+      files.dispose()
+      pendingLoad.current?.reject(new Error('窗口已关闭。'))
+      pendingLoad.current = null
+    }
+  }, [files])
+  const name = fileStatus.file?.name ?? '未命名.json'
+  useEffect(() => {
+    document.title = `${fileStatus.dirty ? '● ' : ''}${name} — JSONEditor`
+  }, [name, fileStatus.dirty])
   const busy = !status.workerReady || status.state === 'validating' || status.composing
+  const fileBusy = fileStatus.busy || fileStatus.loading || status.composing
   const errors = status.problems.filter((problem) => problem.severity === 'error').length
   const warnings = status.problems.filter((problem) => problem.severity === 'warning').length
   return (
     <section className="text-workspace" aria-label="JSON 文本工作区">
+      <div className="file-toolbar" role="toolbar" aria-label="文件与剪贴板操作">
+        <button disabled={fileBusy} title="Ctrl+N" onClick={() => void files.dispatch('new')}>
+          新建
+        </button>
+        <button disabled={fileBusy} title="Ctrl+O" onClick={() => void files.dispatch('open')}>
+          打开
+        </button>
+        <button disabled={fileBusy} title="Ctrl+S" onClick={() => void files.dispatch('save')}>
+          保存
+        </button>
+        <button
+          disabled={fileBusy}
+          title="Ctrl+Shift+S"
+          onClick={() => void files.dispatch('saveAs')}
+        >
+          另存为
+        </button>
+        <span className="toolbar-separator" />
+        <button
+          disabled={fileBusy}
+          title="Ctrl+Shift+C"
+          onClick={() => void files.dispatch('copyRaw')}
+        >
+          复制原文
+        </button>
+        <button
+          disabled={fileBusy || busy}
+          title="Ctrl+Alt+C"
+          onClick={() => void files.dispatch('copyFormatted')}
+        >
+          复制格式化
+        </button>
+        <button
+          disabled={fileBusy || busy}
+          title="Ctrl+Alt+M"
+          onClick={() => void files.dispatch('copyCompact')}
+        >
+          复制压缩
+        </button>
+        <button
+          disabled={fileBusy}
+          title="Ctrl+Alt+V；一次可撤销事务"
+          onClick={() => void files.dispatch('paste')}
+        >
+          剪贴板替换全文
+        </button>
+        <select
+          aria-label="最近文件"
+          value=""
+          disabled={fileBusy}
+          onChange={(event) => {
+            if (event.target.value) void files.open(event.target.value)
+          }}
+        >
+          <option value="">最近文件…</option>
+          {fileStatus.recent.map((item) => (
+            <option key={item.id} value={item.id}>
+              {item.name} — {item.path}
+            </option>
+          ))}
+        </select>
+      </div>
+      <p
+        className={`file-status ${fileStatus.error ? 'error' : ''}`}
+        role={fileStatus.error ? 'alert' : 'status'}
+        aria-label={fileStatus.error ? '文件操作错误' : '文件操作状态'}
+        data-testid="file-status"
+      >
+        {fileStatus.busy
+          ? '文件/剪贴板操作中…'
+          : fileStatus.message ||
+            (fileStatus.dirty
+              ? '有未保存的修改。'
+              : fileStatus.file
+                ? '已保存。'
+                : '新文档尚未保存。')}
+      </p>
       <div className="toolbar" role="toolbar" aria-label="文本操作">
-        <button onClick={() => view.current?.format()} disabled={busy} title="Ctrl+Shift+F">
+        <button
+          onClick={() => view.current?.format()}
+          disabled={busy || fileStatus.loading}
+          title="Ctrl+Shift+F"
+        >
           格式化
         </button>
         <button onClick={() => view.current?.validate()} disabled={busy}>
@@ -42,7 +211,10 @@ export function JsonTextEditor(): React.JSX.Element {
         <span className="toolbar-separator" />
         <button onClick={() => view.current?.undo()}>撤销</button>
         <button onClick={() => view.current?.redo()}>重做</button>
-        <span className="document-label">未命名.json{status.revision > 0 ? ' · 已修改' : ''}</span>
+        <span className="document-label" title={fileStatus.file?.path} data-testid="document-name">
+          {name}
+          {fileStatus.dirty ? ' · 已修改' : ''}
+        </span>
       </div>
       {status.largeFile && (
         <p className="notice">大文件模式：已暂停自动校验，请使用“校验”或“格式化”。</p>
@@ -51,6 +223,7 @@ export function JsonTextEditor(): React.JSX.Element {
         <JsonTreeEditor
           tree={status.tree}
           current={
+            !fileStatus.loading &&
             !status.composing &&
             status.state === 'valid' &&
             status.tree?.revision === status.revision
@@ -102,7 +275,12 @@ export function JsonTextEditor(): React.JSX.Element {
           {status.diagnosticsTruncated && <p>问题较多，仅显示前 100 项。</p>}
         </aside>
       )}
-      <p className="document-note">当前为未保存的临时文档；文件打开和保存将在后续阶段加入。</p>
+      <p className="document-note">
+        {fileStatus.file
+          ? `${fileStatus.file.path} · UTF-8${fileStatus.file.bom ? ' BOM' : ''} · ${fileStatus.file.eol}`
+          : '新文档尚未保存；可使用“保存”选择位置。'}{' '}
+        非法 JSON 可按原文保存。
+      </p>
     </section>
   )
 }

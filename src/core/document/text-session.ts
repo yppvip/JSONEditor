@@ -66,6 +66,27 @@ export class TextDocumentSession {
   private composing = false
   private journal: ChangeBatch[] = []
   private applying: 'format' | 'tree' | null = null
+  private clipboard: { resolve: (text: string) => void; reject: (error: Error) => void } | null =
+    null
+  private cancelClipboard(message: string): void {
+    this.clipboard?.reject(new Error(message))
+    this.clipboard = null
+  }
+  transformClipboard(mode: 'format' | 'compact'): Promise<string> {
+    if (
+      this.disposed ||
+      this.composing ||
+      this.inFlight ||
+      !this.snapshot.workerReady ||
+      this.snapshot.state === 'failed' ||
+      this.buffer.getLength() > MAX_TEXT_LENGTH
+    )
+      return Promise.reject(new Error('后台忙、输入中或文本超限，请稍后重试复制。'))
+    return new Promise((resolve, reject) => {
+      this.clipboard = { resolve, reject }
+      this.request(mode === 'format' ? 'copy-format' : 'copy-compact')
+    })
+  }
 
   constructor(
     private readonly documentId: string,
@@ -110,6 +131,7 @@ export class TextDocumentSession {
 
   changed(changes?: readonly SourceChange[], origin: 'text' | 'undo' | 'redo' = 'text'): void {
     if (this.disposed) return
+    this.cancelClipboard('复制转换期间文档已变化，剪贴板未改写。')
     this.queued = null
     this.clearDebounce()
     const largeFile = this.buffer.getLength() > AUTOMATIC_VALIDATION_LIMIT
@@ -152,6 +174,7 @@ export class TextDocumentSession {
         : {}),
     })
     if (composing) {
+      this.cancelClipboard('输入法组合期间已取消复制。')
       this.clearDebounce()
       this.queued = null
     } else if (!this.snapshot.largeFile && this.snapshot.state !== 'failed') this.schedule()
@@ -302,6 +325,18 @@ export class TextDocumentSession {
           return
         }
       }
+      const clipboardResult =
+        response.action === 'copy-format' || response.action === 'copy-compact'
+      if (clipboardResult) {
+        const pending = this.clipboard
+        this.clipboard = null
+        if (response.analysis.valid && typeof response.output === 'string')
+          pending?.resolve(response.output)
+        else
+          pending?.reject(
+            new Error(response.outputError ?? 'JSON 无效，转换复制已取消；可复制原文。'),
+          )
+      }
       this.buffer.setDiagnostics(response.analysis.diagnostics)
       this.publish({
         state: response.analysis.valid ? 'valid' : 'invalid',
@@ -315,6 +350,14 @@ export class TextDocumentSession {
             : {}),
         treeError: response.commandError ?? '',
       })
+      if (
+        clipboardResult &&
+        response.analysis.valid &&
+        this.snapshot.tree?.revision !== this.snapshot.revision
+      ) {
+        this.request('validate')
+        return
+      }
     }
     const action = this.queued
     this.queued = null
@@ -323,6 +366,7 @@ export class TextDocumentSession {
 
   restart(): void {
     if (this.disposed) return
+    this.cancelClipboard('后台已重启，复制已取消。')
     this.transport?.dispose()
     this.clearDebounce()
     this.clearTimeout()
@@ -343,6 +387,7 @@ export class TextDocumentSession {
   }
 
   private fail(message: string): void {
+    this.cancelClipboard(message)
     this.clearDebounce()
     this.clearTimeout()
     this.inFlight = null
@@ -374,6 +419,7 @@ export class TextDocumentSession {
     this.debounce = null
   }
   dispose(): void {
+    this.cancelClipboard('编辑器已关闭，复制已取消。')
     this.disposed = true
     this.clearDebounce()
     this.clearTimeout()

@@ -3,6 +3,7 @@ import { beforeEach, expect, it, vi } from 'vitest'
 import { initialDocumentStatus } from '../../src/core/document/text-session'
 import type { EditorStatus } from '../../src/renderer/text-editor/create-editor'
 import { App } from '../../src/renderer/app/App'
+import { desktopStub } from '../desktop-stub'
 
 const editor = vi.hoisted(() => ({
   create: vi.fn(),
@@ -13,6 +14,13 @@ const editor = vi.hoisted(() => ({
   retry: vi.fn(),
   focusProblem: vi.fn(),
   dispose: vi.fn(),
+  getHistoryVersion: vi.fn().mockReturnValue(1),
+  getSnapshot: vi
+    .fn()
+    .mockReturnValue({ text: '{}', revision: 0, historyVersion: 1, composing: false }),
+  setReadOnly: vi.fn(),
+  replaceText: vi.fn().mockReturnValue(true),
+  transformClipboard: vi.fn().mockResolvedValue('{}'),
 }))
 vi.mock('../../src/renderer/text-editor/create-editor', () => ({ createEditor: editor.create }))
 let notify: (status: EditorStatus) => void
@@ -21,6 +29,7 @@ const valid: EditorStatus = {
   state: 'valid',
   workerReady: true,
   problems: [],
+  historyVersion: 1,
 }
 
 beforeEach(() => {
@@ -38,6 +47,7 @@ beforeEach(() => {
     return editor
   })
   window.desktop = {
+    ...desktopStub(),
     getAppInfo: vi.fn().mockResolvedValue({
       name: 'JSONEditor',
       version: '0.1.0',
@@ -60,7 +70,10 @@ it('shows desktop and JSON status, and delegates toolbar actions', async () => {
 })
 
 it('reports a rejected desktop connection', async () => {
-  window.desktop = { getAppInfo: vi.fn().mockRejectedValue(new Error('Unavailable')) }
+  window.desktop = {
+    ...window.desktop,
+    getAppInfo: vi.fn().mockRejectedValue(new Error('Unavailable')),
+  }
   render(<App />)
   expect((await screen.findByText('桌面连接失败')).textContent).toBe('桌面连接失败')
 })

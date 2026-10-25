@@ -6,7 +6,7 @@
 
 开发支持 Windows/Linux 的桌面 JSON Editor，未来扩展 macOS。核心能力为 JSON 文本编辑、树形编辑、可靠双向同步、节点结构操作、大文件处理，以及文件和剪贴板能力。
 
-Phase0 至 Phase5 已完成（2026-10-25），当前版本 0.5.0。拖拽/移动/排序、受限标量增量投影及挂载行订阅已实现并验证；尚未进入 Phase6，当前仍是未持久化的临时文档。
+Phase0 至 Phase6 已完成（2026-10-25），当前版本 0.6.0。文件、剪贴板、快捷键和最近文件已实现并通过回归；尚未进入 Phase7。
 
 项目根目录已确认：`D:\4Code\JSONEditor`。检查时目录仅有 `.git`；已有 Git 仓库，不再次执行 `git init`，不擅自提交或推送。
 
@@ -19,12 +19,12 @@ Phase0 至 Phase5 已完成（2026-10-25），当前版本 0.5.0。拖拽/移动
 | UI | 自定义轻量编辑界面；Ant Design 方向 | 当前使用本地 CSS，组件库留待需要时引入 |
 | Tree | React Arborist 4.0.1，自定义 JSON 行 | 受控虚拟树、稳定拓扑与挂载行节点订阅；独立节点和结构操作表单 |
 | Text | Monaco Editor 0.57.0，封装官方 API | Phase2 已正式集成，ESM 代码/字体/Worker 本地打包 |
-| State | 独立文档会话 + React UI 元数据 | Phase4 同步由 TextDocumentSession 协调；尚未引入 Zustand，内容不进入 React state |
+| State | 独立文档会话 + React UI 元数据 | TextDocumentSession 协调同步，DesktopDocumentSession 管理文件生命周期；内容不进入 React state |
 | JSON Engine | TypeScript Worker + jsonc-parser 3.3.1 | 严格校验、源码 edits、规范化模型、结构命令、有界身份历史及受限标量投影更新 |
 | DnD / Virtualization | Arborist + React DnD 16.0.1 / HTML5 Backend 16.0.1 | 单节点拖放、实时落点检查、同级/跨容器操作与固定行虚拟化已实现；物理鼠标待手工验收 |
 | Build | electron-vite 6.0.0 / Vite 8.3.5 | 本地依赖，生产构建已通过 |
 | Package | electron-builder 26.18.0 | Windows NSIS 已构建；Linux 配置待目标系统验证 |
-| Test | Vitest 5.0.5、Testing Library 16.3.3、Playwright 1.64.1 | 173 项单元/组件测试、21 项交互 E2E 已通过；fast-check 留待后续阶段 |
+| Test | Vitest 5.0.5、Testing Library 16.3.3、Playwright 1.64.1 | 215 项单元/组件测试、源码与打包 exe 各 28 项交互 E2E 已通过；fast-check 留待后续阶段 |
 
 ## 3. 技术选型结论
 
@@ -208,7 +208,7 @@ Renderer -> typed Desktop API -> Preload -> Main -> OS services
 
 文档文本是内容权威；有效树是带解析 revision 的派生投影，不建立另一份可以随意改写的 Object 真相源。
 
-文本由 Monaco ITextModel 持有，TextDocumentSession 通过 DocumentBuffer 接口读写，不把全文逐键复制到 React state。Phase3 已发布有效 Tree 投影，树命令通过源码 edits 回到同一缓冲区；下图中的文件与系统剪贴板路径待 Phase6。
+文本由 Monaco ITextModel 持有，TextDocumentSession 通过 DocumentBuffer 接口读写，不把全文逐键复制到 React state。树命令通过源码 edits 回到同一缓冲区；文件与系统剪贴板通过有限 IPC、能力令牌和版本检查接入。
 
 ```text
 Text input -> DocumentSession(text, revision) -> Worker parse -> valid Tree projection
@@ -244,7 +244,7 @@ Save / Copy -> current document revision -> Main system adapter
 | Phase3 Tree | 六种类型、增删改、展开折叠 | 已完成；受控虚拟树、源码命令、基础版本保护与统一文本撤销通过验收 |
 | Phase4 同步引擎 | 双向事务、版本冲突、非法中间态、统一历史 | 已完成；有界身份恢复、提交核对、组合输入与 Worker 竞争回归通过，无反馈循环 |
 | Phase5 高级 Tree | 拖拽、移动、排序、大文件优化 | 已完成；移动保护、精确排序、受限增量投影和节点订阅通过回归；100,000 节点规模/资源已测 |
-| Phase6 桌面能力 | 文件、剪贴板、快捷键、最近文件 | IPC 有限且校验充分，错误不丢文本 |
+| Phase6 桌面能力 | 文件、剪贴板、快捷键、最近文件 | 已完成；文件字节/冲突/未保存关闭、剪贴板转换与历史持久化通过回归 |
 | Phase7 测试发布 | Windows/Linux 安装、回归与性能、发布流程 | 目标系统实际运行与安装验收 |
 
 ## 13. 各阶段目标
@@ -824,3 +824,88 @@ Arborist 会在创建 NodeApi 时缓存 isDraggable，因此静态拓扑资格�
 `release/win-unpacked/JSONEditor.exe` 为最新 0.5.0；保留 0.1.0 至 0.4.0 安装包及历史报告。使用默认图标、未签名；未执行安装/升级/卸载、发布或 Linux 验收。物理鼠标拖拽、物理中文输入法和长期内存测试未执行。没有提交、推送 Git 或修改全局环境。
 
 Phase5 到此完成。下一阶段 Phase6 为文件打开/保存、编码/写入错误处理、系统剪贴板、快捷键及最近文件等桌面能力，继续使用有限 IPC、单一内容权威和事务版本保护。本轮未进入 Phase6；当前内容仅在窗口临时模型中，关闭不会持久化。
+
+## 32. Phase6 执行进度
+
+开始/完成日期：2026-10-25（Asia/Shanghai）。状态：已完成，版本 0.6.0；未自动进入 Phase7。
+
+| 步骤 | 状态 | 记录 |
+| --- | --- | --- |
+| 基线与边界 | 已完成 | 保留既有改动与工件；单文档、当前文本为权威 |
+| 文件服务 | 已实现，磁盘测试通过 | UTF-8/BOM、LF/CRLF、尺寸保护、能力令牌、磁盘冲突和临时文件替换 |
+| 文档生命周期 | 已实现，窗口验证通过 | 新建/打开/保存/另存为、历史脏状态、未保存确认、版本竞争与关闭输入锁定 |
+| 剪贴板/快捷键/最近文件 | 已实现，窗口验证通过 | 有限 IPC、Worker 转换复制、可撤销整篇粘贴、持久化最近文件及键盘回退 |
+| 验证与交付 | 已完成 | 215 项单元/组件、源码与打包 exe 各 28 项交互、开发 smoke 和规模回归通过；NSIS 已生成 |
+
+### 32.1 文件能力与无损边界
+
+Renderer 不接收任意文件系统函数。Main 接受打开对话框选择或应用内最近文件 ID，解析真实路径并返回绑定窗口的随机 fileId；保存只使用该授权或原生另存为对话框选择的位置。多余字段、路径冒充 fileId、未知/其他窗口授权、非主框架请求均拒绝。新文档或成功切换文件后释放旧授权，窗口关闭释放该窗口授权。
+
+`file-service.ts` 每块最多读取 64 KiB、累计最多读取 64 MiB 普通文件，读取后解码上限为 20 Mi UTF-16 字符。首期支持 UTF-8 和一个 UTF-8 BOM，LF 或 CRLF 必须一致；非法 UTF-8、UTF-16、混合换行、单独 CR、重复 BOM 明确报错，不覆盖当前模型。保存拒绝未配对 UTF-16 代理字符和额外前导 BOM，避免隐式替换字符或 Monaco 隐藏 BOM。UTF-8 BOM 与加载的 LF/CRLF 风格保留；新文档默认为 UTF-8 无 BOM、LF。不自动格式化或 JSON.parse/stringify 保存，非法 JSON 也可按当前源码写入。
+
+保存使用同目录随机临时文件、独占创建、写入/fsync/关闭、目标校对后 rename；失败时仅尝试清理本次成功创建的临时文件，不先截断目标；临时文件使用固定长度随机名称，避免长文件名导致临时名称超限。对已有授权记录字节 SHA-256，提交前及 rename 前再次比较磁盘内容，检测修改或删除后拒绝覆盖。另存为可选择另一位置保留两份，选择原文件仍执行冲突检查；符号链接写入被拒绝。该保护不等同跨进程文件锁：外部写入恰好发生在最后检查与 rename 之间仍存在竞争；未做断电/强制终止的持久化故障注入，不承诺完全的崩溃一致性。
+
+### 32.2 文档状态、保存竞争和关闭
+
+`DesktopDocumentSession` 仅持有文件元数据、脏状态、I/O 状态和最近文件，不把全文放入 React state。Monaco 仍持有当前内容；文件读入时只暂存待加载文本引用，创建新模型/会话后清除。每次打开/新建使用新 documentId、模型、撤销历史与 Worker；旧后台响应随旧会话释放，不能写入新文档。
+
+脏状态基于 Monaco 历史版本与最后已保存版本比较，撤销回已保存版本时恢复干净。保存捕获操作开始时的文本/历史版本；保存期间的新编辑保持脏状态，不被错误标记为已保存。打开、丢弃确认和剪贴板读取均校对 generation/revision/historyVersion；等待期间发生新编辑则取消替换、保留当前文本，并释放未使用的文件能力。
+
+新建、打开和关闭遇到未保存修改时显示保存/不保存/取消；保存取消、失败或保存后仍有新修改，都不会丢弃当前内容。Main 关闭事件先阻止窗口销毁，发送一次性请求 ID；Renderer 做完决策、同步锁定编辑输入后才允许关闭，Main 独立核对窗口和 nonce。繁忙操作期间拒绝关闭，失败回复不会获得关闭授权。没有自动保存或崩溃恢复功能。
+
+### 32.3 剪贴板、菜单、快捷键和最近文件
+
+系统剪贴板由 Main 的 Electron 45 异步 readText/writeText 操作，Renderer 的普通剪贴板权限仍未开放。复制原文使用当前模型；格式化/压缩复制由现有 Worker 进行严格校验和源码 token/范围转换，不改模型或撤销历史。数字字面量、重复 key、成员顺序、字符串空格与转义保留。非法 JSON 的转换复制取消且不写剪贴板，可改用原文复制；等待期间输入或后台失败会取消转换。整篇剪贴板替换是一次可撤销编辑，保持当前文档绑定和换行风格。文本/转换输出均限制 20 Mi UTF-16 字符；原生剪贴板无预取大小 API，读取后检查上限。
+
+应用内最近文件最多 10 条，以 UUID 选择、按路径去重，写入 userData/recent-files.json；记录损坏时按空历史恢复，不影响文档。历史写入失败只给成功附带警告，不能把成功的文件保存误报为未保存。支持标准绝对路径 `--user-data-dir` 配置目录选项；E2E 使用项目 test-results 内隔离目录，不改真实用户最近文件。没有新增任意路径读取 IPC 或自动扫描文件夹。
+
+| 操作 | Windows/Linux 快捷键（macOS 用 Cmd 代替 Ctrl） |
+| --- | --- |
+| 新建 / 打开 | Ctrl+N / Ctrl+O |
+| 保存 / 另存为 | Ctrl+S / Ctrl+Shift+S |
+| 复制原文 / 格式化 / 压缩 | Ctrl+Shift+C / Ctrl+Alt+C / Ctrl+Alt+M |
+| 剪贴板替换全文 | Ctrl+Alt+V |
+| 编辑器撤销 / 重做 / 格式化 | 现有 Ctrl+Z、Ctrl+Y（或平台重做键）、Ctrl+Shift+F |
+
+文件/全文操作有 Main 菜单加速器和同一映射的 DOM 键盘回退；原生 before-input-event 处理时阻止重复投递，回退覆盖 CDP 等仅向页面派发按键的场景。普通 Ctrl+C/V/A/Z 不被文件快捷键拦截，编辑菜单提供选区剪切/复制/粘贴及文档撤销/重做操作。IME 组合和重复按键不触发桌面快捷操作。
+
+### 32.4 验证进展与环境处理
+
+已有树、文本、同步的 21 项 Electron 回归通过；新增 7 项桌面窗口测试通过，覆盖 BOM/CRLF 与大整数字节校对、Ctrl+S/脏状态、非法 JSON 原文保存、最近文件重启恢复、解码错误和取消保留原文、外部冲突/另存为、剪贴板转换/撤销、原生关闭取消/保存路径和 IPC 越权参数。
+
+文件测试调用真实磁盘服务和 IPC，原生对话框的返回值在测试中替换，未自动点击操作系统对话框。剪贴板原生端口在 E2E 中替换为隔离字符串存储，完整通过 Preload/IPC/Worker/Monaco 路径验证；没有读取、记录或改写现有系统剪贴板内容，因此不把此结果当作系统剪贴板手工验收。测试清理专门允许丢弃测试文档，生产关闭保护保持启用。单元临时目录在删除前校验绝对路径位于 test-results 内。
+
+初次类型检查发现 Electron 45 的剪贴板接口已为异步，按本地 electron.d.ts 适配并等待失败；没有照搬旧同步签名。发现 CDP 键盘事件不触发原生菜单后补齐统一 DOM 回退。关闭成功后不能继续对同一实例测试其他关闭选择，单元场景改为独立会话；已关闭 Electron 进程的清理也作了兼容。
+
+| 最终检查 | 结果 |
+| --- | --- |
+| Lint / Prettier / TypeScript strict | 通过 |
+| Vitest / Testing Library | 18 文件、215/215 通过 |
+| 生产资源 Electron E2E | 28/28，0 skipped/unexpected/flaky |
+| 打包 exe E2E | 28/28，0 skipped/unexpected/flaky |
+| 开发模式 smoke | 通过；0.6.0、Worker ready、sandbox/contextIsolation 开启 |
+| Windows x64 NSIS | 构建通过；最终代码已包含在安装包中 |
+| 规模保护与结构事务 | 100,000 节点编辑/排序/撤销、100,001 节点安全降级通过 |
+
+证据：`docs/phase6-verification.json`、`docs/phase6-source-e2e.json`、`docs/phase6-e2e.json`、`docs/phase6-development-smoke.json`、`docs/phase6-performance.json`。最终窗口截图为 `test-results/phase6-editor.png`（忽略跟踪）。最终源码检查、构建、源码 E2E、打包 E2E 和开发 smoke 均在应用代码冻结后完成。
+
+### 32.5 规模与资源回归
+
+同机 Windows x64 10.0.26200、i5-9400F、6 逻辑处理器、约 16 GiB RAM；每种平坦数组粘贴一次、连续修改三次标量，第一次改变源码长度，后两次等长。Renderer/Worker 与最终版本一致；后续 Main 的临时文件清理/命名及换行扫描调整不在本规模脚本路径中。
+
+| 总节点数 | 粘贴至树可用 ms | 三次标量修改 ms | 修改中位 ms | 挂载行数 | 工作集之和 MiB | Private Bytes 之和 MiB |
+| --- | --- | --- | --- | --- | --- | --- |
+| 1,001 | 458.7 | 116.0 / 106.9 / 107.0 | 107.0 | 10 | 441.7 | 323.4 |
+| 10,001 | 941.8 | 136.8 / 96.7 / 170.4 | 136.8 | 10 | 520.4 | 404.7 |
+| 50,001 | 953.9 | 137.6 / 151.7 / 132.8 | 137.6 | 10 | 698.6 | 588.7 |
+| 100,000 | 1097.2 | 156.6 / 270.8 / 194.5 | 194.5 | 10 | 1007.6 | 901.3 |
+
+100,000 节点排序约 1005.2ms，撤销约 1031.0ms；100,001 节点安全降级。文件工具栏占用额外高度，当前视口挂载 10 行。计时包含自动化、后台往返和渲染，粘贴还包含 debounce；内存包含 GPU/自动化且共享工作集可能重复计数。这是少量合成样本，不承诺固定时延、内存上限或长期无泄漏，也不替代 20 Mi 字符文件 I/O、复杂嵌套、物理输入法及跨平台验收。
+
+### 32.6 工件与后续入口
+
+安装包：`release/JSONEditor-0.6.0-x64-setup.exe`，123,542,624 字节（约 117.8 MiB）。SHA-256：`9efe26c292a1b939ec87217615e8f2abbb7d8580232ea9919d9a83e6663e36e2`。
+
+`release/win-unpacked/JSONEditor.exe` 为最新 0.6.0；保留 0.1.0 至 0.5.0 安装包及历史报告。当前使用默认图标、未签名；未运行安装/升级/卸载或发布，未执行 Linux、原生剪贴板/文件对话框手工验收、物理鼠标拖拽/中文输入法及长期内存测试。没有修改全局环境、提交或推送 Git。
+
+Phase6 到此完成，未进入 Phase7。保存成功的文件已写入磁盘；未保存内容仍需用户保存，没有自动保存或崩溃恢复。Phase7 继续最终验收与发布准备，不能将本阶段自动化替身覆盖的原生端口视为物理桌面验收已完成。

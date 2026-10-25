@@ -7,7 +7,7 @@ import type { ScalarTreePatch } from '../core/tree-model/scalar-patch'
 
 export interface JsonWorkerRequest extends DocumentVersion {
   requestId: number
-  action: 'validate' | 'format' | 'tree'
+  action: 'validate' | 'format' | 'tree' | 'copy-format' | 'copy-compact'
   text: string
   command?: TreeCommand
   historyVersion?: number
@@ -25,6 +25,8 @@ export interface JsonWorkerResult extends DocumentVersion {
   treePatch?: ScalarTreePatch
   treeMessage?: string
   commandError?: string
+  output?: string
+  outputError?: string
 }
 
 export type JsonWorkerResponse =

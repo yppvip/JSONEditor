@@ -106,6 +106,28 @@ afterEach(() => {
 })
 
 describe('synchronization races and transaction boundaries', () => {
+  it('transforms clipboard output without applying edits or advancing the document revision', async () => {
+    const h = harness(),
+      worker = h.start()
+    const copying = h.session.transformClipboard('compact')
+    worker.finish()
+    await expect(copying).resolves.toBe('{"a":1,"b":[2,3]}')
+    expect(h.apply).not.toHaveBeenCalled()
+    expect(h.session.getSnapshot().revision).toBe(0)
+    h.session.dispose()
+  })
+  it('cancels pending clipboard output after new input without applying a stale transformation', async () => {
+    const h = harness(),
+      worker = h.start()
+    const copying = h.session.transformClipboard('format')
+    const rejection = expect(copying).rejects.toThrow(/文档已变化/)
+    h.replace('[2]')
+    await rejection
+    worker.finish()
+    expect(h.apply).not.toHaveBeenCalled()
+    expect(h.source()).toBe('[2]')
+    h.session.dispose()
+  })
   it('accepts a compact scalar response without transferring a full node table', () => {
     const h = harness()
     const worker = h.start()
