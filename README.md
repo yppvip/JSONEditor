@@ -1,6 +1,6 @@
 # JSONEditor
 
-Electron + React + TypeScript 桌面应用。当前版本 0.6.0：文本/树编辑、统一同步、高级节点操作及本地文件和剪贴板能力。
+Electron + React + TypeScript 桌面应用。当前候选版本 0.7.0：文本/树编辑、统一同步、高级节点操作及本地文件和剪贴板能力，已加入跨平台 CI 和发布验收流程。
 
 支持 JSON 高亮、Ctrl+Shift+F 格式化、撤销/重做和重复键警告。非法输入保持原样，格式化保留数字字面量。超过 2 Mi UTF-16 字符时使用手动校验；当前分析上限为 20 Mi 字符、512 层嵌套。
 
@@ -34,8 +34,12 @@ pnpm test:dev            验证开发模式
 pnpm test:performance    独立性能风险原型
 pnpm test:tree-performance 真实树模型规模与资源探针
 pnpm build:win           构建 Windows x64 NSIS 安装包
+pnpm build:linux         在 Linux 构建 AppImage/deb（需要真实 JSONEDITOR_PROJECT_URL）
+pnpm release:manifest win32 生成当前版本 Windows 工件 SHA-256 清单
 ```
 
 架构、实际验证结果与阶段进度见 [开发指南](docs/development.md)。
+
+安装/升级/卸载验证、Linux CI 配置、工件校验和发布门槛见 [发布与验收](docs/release.md)。当前候选包未签名；Linux 目标系统验收及原生桌面手工检查的状态以验证报告为准。
 
 脚手架来源：`@quick-start/create-electron@1.0.31`（MIT），已按项目边界调整。项目本身尚未确定对外开源许可。

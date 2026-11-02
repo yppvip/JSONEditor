@@ -1,0 +1,108 @@
+{
+  "capturedAtUtc": "2026-10-25T14:38:30.0185117Z",
+  "phase": "Phase7",
+  "version": "0.7.0",
+  "status": "windows-verified-linux-pending",
+  "publicReleaseReady": false,
+  "source": {
+    "workingTree": "uncommitted Phase7 changes",
+    "baseCommit": "75c0dfbb897a6231391d3812cbacff7a2a77b1f3"
+  },
+  "windows": {
+    "sourceE2E": {
+      "startTime": "2026-10-25T14:17:46.507Z",
+      "duration": 116861.3,
+      "expected": 30,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "lint": true,
+    "installedE2E": {
+      "startTime": "2026-10-25T14:25:41.171Z",
+      "duration": 118520.49799999999,
+      "expected": 30,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "artifact": {
+      "version": "0.7.0",
+      "platform": "win32",
+      "arch": "x64",
+      "createdAtUtc": "2026-10-25T14:30:14.344Z",
+      "signed": false,
+      "files": [
+        {
+          "name": "JSONEditor-0.7.0-x64-setup.exe",
+          "bytes": 123542892,
+          "sha256": "10684d8c29d02ef1e88afb5d629787e9cd063e9f7011f5d6afabd969c84b1311"
+        },
+        {
+          "name": "JSONEditor-0.7.0-x64-setup.exe.blockmap",
+          "bytes": 131092,
+          "sha256": "4186511ebe0eae2495ddb18d0b87e42d72ed843a6d51adbd73251a8bad0a91ae"
+        }
+      ]
+    },
+    "developmentSmokePassed": true,
+    "scaleRegressionPassed": true,
+    "format": true,
+    "installerPassed": true,
+    "maximumTreeNodes": 100000,
+    "passed": true,
+    "unitTests": 215,
+    "unitTestFiles": 18,
+    "typecheck": true,
+    "installerChecks": [
+      "previous-0.6.0-install-launch-save",
+      "current-install-registry-shortcut-offline-launch-save",
+      "upgrade-keeps-profile",
+      "uninstall-retains-profile",
+      "uninstall-after-verification-host-exit-removes-executable-registry-shortcut"
+    ]
+  },
+  "ci": {
+    "publishing": "never",
+    "executedRemotely": false,
+    "runners": [
+      "windows-2025",
+      "ubuntu-24.04"
+    ],
+    "workflow": ".github/workflows/verify.yml",
+    "yamlParsed": true,
+    "permissions": {
+      "contents": "read"
+    }
+  },
+  "linux": {
+    "reasons": [
+      "No usable Linux/WSL/Docker runtime on this host",
+      "Real project HTTPS homepage is required for deb packaging",
+      "No git remote configured; CI has not been dispatched"
+    ],
+    "status": "not-executed",
+    "artifactsBuilt": false
+  },
+  "evidence": [
+    "docs/phase7-source-e2e.json",
+    "docs/phase7-installed-e2e.json",
+    "docs/phase7-installer.json",
+    "docs/phase7-performance.json",
+    "docs/phase7-development-smoke.json",
+    "docs/phase7-package-audit.json"
+  ],
+  "observedFailures": [
+    "Initial reload before first navigation; corrected and final full source E2E passed",
+    "One source E2E overlapped resource rebuild; final regression ran sequentially",
+    "Four in-host uninstall checks left a PE until host exit; final verification/uninstall use separate processes; failure reports retained"
+  ],
+  "limitations": [
+    "Final split-process installer rerun did not repeat full E2E; full installed E2E covers the identical artifact hash in a preceding run",
+    "Silent current-user install only; no interactive wizard/UAC/physical desktop acceptance",
+    "File dialog selections and OS clipboard ports use fixtures in automated E2E",
+    "No autosave/crash recovery, power-loss testing or long-duration memory guarantee",
+    "Scale measurements are limited synthetic samples",
+    "Default icon, unsigned, project license UNLICENSED; not approved for public release"
+  ]
+}

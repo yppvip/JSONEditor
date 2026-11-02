@@ -1,0 +1,17 @@
+{
+  "capturedAtUtc": "2026-10-25T14:31:24.8926205Z",
+  "version": "0.7.0",
+  "passed": false,
+  "installationDirectory": "D:\\4Code\\JSONEditor\\release\\installer-validation\\phase7-install-113849a8425c42afa54510822f1fd1e6\\application",
+  "checks": [
+    "previous-0.6.0-install-launch-save",
+    "current-install-registry-shortcut-offline-launch-save",
+    "upgrade-keeps-profile",
+    "installed-executable-released-before-uninstall"
+  ],
+  "limitations": [
+    "Silent current-user NSIS flow; interactive wizard, UAC and signed reputation are not tested",
+    "File dialog return is a fixture; disk save, IPC and installed executable are real"
+  ],
+  "cleanupError": "Uninstaller left executable or shortcut."
+}

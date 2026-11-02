@@ -1,0 +1,121 @@
+name: Verify desktop release candidate
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: desktop-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  desktop:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-2025, ubuntu-24.04]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    defaults:
+      run:
+        shell: bash
+    env:
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      JSONEDITOR_PROJECT_URL: ${{ vars.JSONEDITOR_PROJECT_URL }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version-file: .node-version
+          package-manager-cache: false
+      - name: Remove reports from previous local runs in this fresh checkout
+        run: node -e "for(const f of require('fs').readdirSync('docs'))if(/^phase7-.*\.json$/.test(f))require('fs').unlinkSync(require('path').join('docs',f))"
+      - name: Install pinned package manager and locked dependencies
+        run: |
+          npm install --global pnpm@12.15.0
+          pnpm install --frozen-lockfile
+      - name: Linux desktop libraries and unprivileged sandbox support
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb libgtk-3-0 libnss3 libasound2t64 libgbm1 libfuse2t64
+          # Only this disposable runner: allow Chromium's user-namespace sandbox.
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+      - run: pnpm check
+      - name: Build production resources
+        run: pnpm build
+      - name: Source Electron regression
+        run: |
+          if [ "$RUNNER_OS" = Linux ]; then
+            xvfb-run -a pnpm test:e2e
+          else
+            pnpm test:e2e
+          fi
+          cp test-results/e2e.json docs/phase7-source-e2e.json
+      - name: Scale and resource regression
+        run: |
+          if [ "$RUNNER_OS" = Linux ]; then
+            xvfb-run -a pnpm test:tree-performance
+          else
+            pnpm test:tree-performance
+          fi
+      - name: Development mode smoke
+        run: |
+          if [ "$RUNNER_OS" = Linux ]; then
+            xvfb-run -a pnpm test:dev
+          else
+            pnpm test:dev
+          fi
+      - name: Build Windows NSIS
+        if: runner.os == 'Windows'
+        run: pnpm build:win
+      - name: Windows current-user installation and full installed regression
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: ./tools/Test-WindowsInstaller.ps1 -RunE2E
+      - name: Windows artifact checksums
+        if: runner.os == 'Windows'
+        run: pnpm release:manifest win32
+      - name: Build Linux AppImage and deb
+        if: runner.os == 'Linux'
+        run: pnpm build:linux
+      - name: Linux deb install and installed regression
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get install -y ./release/JSONEditor-*-x64.deb
+          JSONEDITOR_EXECUTABLE=/opt/JSONEditor/jsoneditor xvfb-run -a pnpm test:e2e
+          cp test-results/e2e.json docs/phase7-installed-e2e.json
+          sudo apt-get remove -y jsoneditor
+          test ! -e /opt/JSONEditor/jsoneditor
+      - name: Linux AppImage extract and runtime smoke
+        if: runner.os == 'Linux'
+        run: |
+          chmod +x release/JSONEditor-*-x64.AppImage
+          release/JSONEditor-*-x64.AppImage --appimage-extract > /dev/null
+          JSONEDITOR_EXECUTABLE="$PWD/squashfs-root/jsoneditor" \
+            JSONEDITOR_EXPECTED_VERSION="$(node -p 'require("./package.json").version')" \
+            xvfb-run -a pnpm test:installed
+          pnpm release:manifest linux
+      - name: Save candidate packages and evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: jsoneditor-${{ matrix.os }}-${{ github.sha }}
+          retention-days: 14
+          compression-level: 0
+          if-no-files-found: error
+          path: |
+            release/JSONEditor-*-x64-setup.exe
+            release/JSONEditor-*-x64-setup.exe.blockmap
+            release/JSONEditor-*-x64.AppImage
+            release/JSONEditor-*-x64.deb
+            release/manifest-*.json
+            release/SHA256SUMS-*.txt
+            docs/phase7-*.json
+            test-results/**

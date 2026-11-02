@@ -20,7 +20,11 @@ nsis:
   allowToChangeInstallationDirectory: true
   createDesktopShortcut: false
 linux:
+  artifactName: '${productName}-${version}-${arch}.${ext}'
   target: [AppImage, deb]
   category: Development
   maintainer: JSONEditor contributors
   executableName: jsoneditor
+  desktop:
+    entry:
+      StartupWMClass: jsoneditor

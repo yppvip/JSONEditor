@@ -1,6 +1,6 @@
 {
   "name": "jsoneditor",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "private": true,
   "description": "Cross-platform JSON editor desktop application",
   "author": "JSONEditor contributors",
@@ -25,11 +25,13 @@
     "test:dev": "node tools/smoke-development.mjs",
     "test:performance": "node tools/run-performance-probe.mjs",
     "test:tree-performance": "node tools/run-tree-probe.mjs",
+    "release:manifest": "node tools/release-manifest.mjs",
+    "test:installed": "node tools/smoke-installed.mjs",
     "check": "pnpm lint && pnpm format:check && pnpm typecheck && pnpm test",
     "build": "pnpm typecheck && electron-vite build",
     "build:unpack": "pnpm build && electron-builder --dir",
-    "build:win": "pnpm build && electron-builder --win nsis --x64",
-    "build:linux": "pnpm build && electron-builder --linux AppImage deb"
+    "build:win": "pnpm build && electron-builder --win nsis --x64 --publish never",
+    "build:linux": "pnpm build && node tools/build-linux.mjs"
   },
   "dependencies": {
     "react": "19.3.1",

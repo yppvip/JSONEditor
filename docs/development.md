@@ -6,7 +6,7 @@
 
 开发支持 Windows/Linux 的桌面 JSON Editor，未来扩展 macOS。核心能力为 JSON 文本编辑、树形编辑、可靠双向同步、节点结构操作、大文件处理，以及文件和剪贴板能力。
 
-Phase0 至 Phase6 已完成（2026-10-25），当前版本 0.6.0。文件、剪贴板、快捷键和最近文件已实现并通过回归；尚未进入 Phase7。
+Phase0 至 Phase6 已完成（2026-10-25）。当前候选版本 0.7.0，Phase7 的 Windows 自动化、安装/升级/卸载和发布流程已完成；Linux 原生构建/验收及公开发布门槛尚待完成，详见第 33 节。
 
 项目根目录已确认：`D:\4Code\JSONEditor`。检查时目录仅有 `.git`；已有 Git 仓库，不再次执行 `git init`，不擅自提交或推送。
 
@@ -24,7 +24,7 @@ Phase0 至 Phase6 已完成（2026-10-25），当前版本 0.6.0。文件、剪�
 | DnD / Virtualization | Arborist + React DnD 16.0.1 / HTML5 Backend 16.0.1 | 单节点拖放、实时落点检查、同级/跨容器操作与固定行虚拟化已实现；物理鼠标待手工验收 |
 | Build | electron-vite 6.0.0 / Vite 8.3.5 | 本地依赖，生产构建已通过 |
 | Package | electron-builder 26.18.0 | Windows NSIS 已构建；Linux 配置待目标系统验证 |
-| Test | Vitest 5.0.5、Testing Library 16.3.3、Playwright 1.64.1 | 215 项单元/组件测试、源码与打包 exe 各 28 项交互 E2E 已通过；fast-check 留待后续阶段 |
+| Test | Vitest 5.0.5、Testing Library 16.3.3、Playwright 1.64.1 | 215 项单元/组件测试、源码与安装后 exe 各 30 项交互 E2E 已通过；fast-check 留待后续阶段 |
 
 ## 3. 技术选型结论
 
@@ -245,7 +245,7 @@ Save / Copy -> current document revision -> Main system adapter
 | Phase4 同步引擎 | 双向事务、版本冲突、非法中间态、统一历史 | 已完成；有界身份恢复、提交核对、组合输入与 Worker 竞争回归通过，无反馈循环 |
 | Phase5 高级 Tree | 拖拽、移动、排序、大文件优化 | 已完成；移动保护、精确排序、受限增量投影和节点订阅通过回归；100,000 节点规模/资源已测 |
 | Phase6 桌面能力 | 文件、剪贴板、快捷键、最近文件 | 已完成；文件字节/冲突/未保存关闭、剪贴板转换与历史持久化通过回归 |
-| Phase7 测试发布 | Windows/Linux 安装、回归与性能、发布流程 | 目标系统实际运行与安装验收 |
+| Phase7 测试发布 | Windows/Linux 安装、回归与性能、发布流程 | Windows 及流程已验证；Linux 原生 runner、桌面手工验收和公开发布门槛待完成 |
 
 ## 13. 各阶段目标
 
@@ -335,11 +335,11 @@ Electron 自动化支持仍需按所选 Playwright/Electron 版本验证；原�
 
 electron-vite 分别构建 Main/Preload/Renderer；Worker 和 Monaco 资源随应用本地打包。electron-builder 负责分发。开发 Node 与 Electron 内置 Node 分别看待，不假设版本一致。
 
-CI 计划在 Phase7 使用 Windows/Linux 各自 runner，本轮尚未建立 CI workflow。届时锁定 Node、pnpm、依赖和构建环境；检查通过后构建并保存工件，签名凭据通过安全存储注入。当前已在本机验证 Windows 工件，不宣称 Linux 已通过。
+Phase7 已建立 `.github/workflows/verify.yml`，分别使用 Windows 2025 / Ubuntu 24.04 runner，固定 Action 提交、Node、pnpm 和依赖，执行检查、源码/安装后回归、性能及原生打包，保存工件与报告。CI 尚未在远程运行；本机 Windows 已验证，Linux 仍待执行。流程清除 checkout 中历史 phase7 JSON 报告，避免把旧报告混入新任务证据；token 只读、构建不自动发布。
 
 ## 20. Windows 发布策略
 
-首期 Windows x64、NSIS exe。portable 按需增加；不为同时生成 MSI 增加首期维护成本。Phase1 已验证 Windows 构建和解包 exe 启动，Phase7 补齐安装/升级/卸载、离线启动、签名和快捷方式检查。
+首期 Windows x64、NSIS exe。portable 按需增加；不为同时生成 MSI 增加首期维护成本。Phase7 已验证当前用户静默安装、0.6.0 到 0.7.0 升级、离线启动/保存、开始菜单快捷方式及卸载清理；交互向导、UAC、签名和受限账户仍待验收。
 
 不要求用户安装 Node、pnpm 或开发工具来运行发布应用。签名和更新策略单独确定，本轮不申请证书、不发布应用。
 
@@ -909,3 +909,74 @@ Renderer 不接收任意文件系统函数。Main 接受打开对话框选择或
 `release/win-unpacked/JSONEditor.exe` 为最新 0.6.0；保留 0.1.0 至 0.5.0 安装包及历史报告。当前使用默认图标、未签名；未运行安装/升级/卸载或发布，未执行 Linux、原生剪贴板/文件对话框手工验收、物理鼠标拖拽/中文输入法及长期内存测试。没有修改全局环境、提交或推送 Git。
 
 Phase6 到此完成，未进入 Phase7。保存成功的文件已写入磁盘；未保存内容仍需用户保存，没有自动保存或崩溃恢复。Phase7 继续最终验收与发布准备，不能将本阶段自动化替身覆盖的原生端口视为物理桌面验收已完成。
+
+## 33. Phase7 执行进度
+
+开始/本机验证完成日期：2026-10-25（Asia/Shanghai）。候选版本：0.7.0。状态：Windows 与发布流程已完成；Phase7 总体仍待 Linux 原生构建/验收及公开发布门槛，尚未对外发布。
+
+| 步骤 | 状态 | 记录 |
+| --- | --- | --- |
+| 范围与环境检查 | 已完成 | 自动化、Windows 安装/升级/卸载、Linux 构建、性能及发布流程；WSL/Linux 不可用 |
+| 自动化补充 | 本机通过 | 215 项单元/组件、源码与安装后 exe 各 30 项 E2E；全部 E2E 使用独立 profile |
+| Windows 交付 | 本机通过 | 隔离目录真实安装、0.6.0 升级、注册/快捷方式/配置保留及卸载清理 |
+| Linux CI | 已编写，待运行 | Ubuntu 24.04 原生 AppImage/deb 构建及安装回归；缺少 Linux 环境及项目主页 URL |
+| 性能与工件 | 本机通过 | 100,000 节点编辑/排序/撤销、100,001 降级；NSIS、blockmap 和 SHA-256 清单已生成 |
+| 发布流程 | 已编写 | docs/release.md；只生成候选工件与报告，未签名/发布 |
+
+### 33.1 自动化与安全验收
+
+新增 2 项真实 Electron 发布回归：禁用 HTTP/HTTPS 后刷新、编辑和 Worker 同步正常，sandbox/contextIsolation 开启、Node require 不可用、生产 CSP 无 unsafe-eval、地理位置权限被拒绝；JSON 中的 HTML 保持文本显示，穿越/反斜杠资源和 POST 请求均返回 403。旧 E2E 启动入口也改为每个场景独立 userData，不再依赖真实用户最近文件。
+
+| 最终检查 | 结果 |
+| --- | --- |
+| Lint / Prettier / TypeScript strict | 通过 |
+| 单元/组件 | 18 文件、215/215 通过 |
+| 生产资源 Electron E2E | 30/30，0 skipped/unexpected/flaky |
+| 实际安装的 0.7.0 exe E2E | 30/30，0 skipped/unexpected/flaky |
+| Windows 安装链路 | 0.6.0 安装、0.7.0 升级、离线保存、注册/快捷方式、显式 profile 保留及卸载清理通过 |
+| 开发模式 smoke | 0.7.0、Worker ready、sandbox/contextIsolation 开启 |
+| 打包内容 | ASAR 107 条目、版本 0.7.0，未包含 src/tests/tools/docs/.github/.git 目录 |
+| CI 静态检查 | YAML 可解析、两平台 runner、官方 Action 提交固定、contents:read；未在远程执行 |
+
+首轮源码回归发现初始导航完成前刷新导致 ERR_ABORTED，补齐等待后专项与最终完整回归通过。一次构建与源码 E2E 重叠时树场景超时，随后冻结资源、顺序执行的完整回归通过；不把失败运行计入最终通过证据。
+
+### 33.2 Windows 安装与卸载发现
+
+`Test-WindowsInstaller.ps1` 先检查已存在的同应用注册项和快捷方式，存在则退出；测试目录限定在本项目 `release/installer-validation/`，不覆盖现有安装。提供旧安装包时真实安装 0.6.0，再升级到 0.7.0；每版实际程序均离线启动、确认安全边界，并通过有限 IPC 把当前源码保存到磁盘核对字节。快捷方式目标、注册版本/安装位置及显式 profile 标记均校对。
+
+卸载最初四次在验收宿主仍存活时留下主 exe，而注册项和快捷方式已经移除；观察到文件占用，宿主结束后残留消失或可清理。单纯等待文件可独占读取、释放 COM 或隔离快捷方式检查不足以解决。最终将完整验收放入子进程，待该进程退出后由控制进程调用 `Complete-WindowsInstaller.ps1`，实测卸载成功，主 exe、注册项和快捷方式均不存在，profile 标记保留。该结果支持验收宿主资源生命周期造成干扰的判断，不声称已经确定某个第三方进程或覆盖所有 Windows 文件锁竞争。
+
+保留 `phase7-installer-first-attempt.json` 至 `phase7-installer-fourth-attempt.json` 失败证据；本次隔离目录内的已知残留 exe 曾按绝对路径边界校验后清理，未删除用户文件。最终 `phase7-installer.json` 为分进程链路通过报告。安装后完整 E2E 的 30/30 证据来自同一哈希工件的此前运行；最终分进程链路另外复验安装、升级、启动/保存及卸载，没有再次重复整组 E2E。
+
+这是当前用户静默安装检查，未覆盖交互向导/UAC、真实文件对话框点击、原生系统剪贴板、受限账户和重启。最近文件及 profile 测试使用显式隔离目录，不能据此宣称默认用户配置升级的所有历史版本兼容性。
+
+### 33.3 规模与资源回归
+
+Windows x64 10.0.26200、i5-9400F、6 逻辑处理器、约 16 GiB RAM。每种合成平坦数组粘贴一次、连续修改三次标量；第一次改变长度，后两次等长。计时含自动化、后台和渲染，粘贴含 debounce。
+
+| 总节点数 | 粘贴至树可用 ms | 三次标量修改 ms | 修改中位 ms | 挂载行数 | 工作集之和 MiB | Private Bytes 之和 MiB |
+| --- | --- | --- | --- | --- | --- | --- |
+| 1,001 | 543.4 | 100.2 / 86.7 / 93.1 | 93.1 | 10 | 460.0 | 337.6 |
+| 10,001 | 979.1 | 199.6 / 184.3 / 119.1 | 184.3 | 10 | 518.4 | 395.9 |
+| 50,001 | 1005.1 | 171.2 / 152.1 / 132.0 | 152.1 | 10 | 712.5 | 596.0 |
+| 100,000 | 1283.1 | 267.1 / 340.0 / 188.7 | 267.1 | 10 | 1018.9 | 901.7 |
+
+100,000 节点排序约 1064.6ms，撤销约 1180.1ms；100,001 节点安全降级。测量时安装验收已无运行中的编辑器；不是隔离系统负载的基准测试。工作集含 GPU/自动化且共享页可能重复计算，不是峰值/空闲或无泄漏证明；少量样本不保证固定延迟，也不替代深层混合数据、20 Mi 字符文件 I/O 或长期编辑测试。
+
+### 33.4 Linux、CI 与发布门槛
+
+`.github/workflows/verify.yml` 已准备 Windows 2025 / Ubuntu 24.04 原生任务，固定 Node 24.16.0、pnpm 12.15.0、官方 Action 提交和 frozen-lockfile；执行检查、开发/生产/安装后测试、规模探针、NSIS 或 AppImage/deb、卸载及 SHA-256 清单，失败也保存本次生成的证据，保留 14 天。先清除 checkout 中历史 Phase7 JSON 报告，避免上传旧成功记录。
+
+Linux 使用 Xvfb；只在一次性 runner 放开 AppArmor 对非特权用户命名空间的限制，继续保留 Chromium sandbox，不使用 --no-sandbox。AppImage 解包后的负载 smoke 不替代 FUSE 挂载或真实 X11/Wayland 桌面验收。工作流尚未远程运行，仓库没有 remote，未推送或触发任务。
+
+本机没有可用 WSL/Linux 或 Docker。锁定的 electron-builder 26.18.0 deb 实现还要求真实项目主页，当前 package.json 与 git remote 均未提供；已向用户请求 URL。`build-linux.mjs` 明确要求 JSONEDITOR_PROJECT_URL（或 package.json homepage）为无凭据的 HTTPS URL，并只在 Linux 执行；缺失元数据会报错，不虚构主页。GitHub 仓库需配置同名 Actions Variable。尚未生成或验证 Linux 工件。
+
+发布流程见 `docs/release.md`。项目当前 UNLICENSED、默认图标、未签名；完整许可/运行时声明、签名身份、物理鼠标/中文输入法、系统剪贴板/对话框、交互安装及 Linux 桌面仍待维护者验收。本轮只准备内部候选包，不把它标为正式发布就绪；没有上传、创建 Release/tag、提交或推送 Git。
+
+### 33.5 工件与继续入口
+
+Windows 安装包：`release/JSONEditor-0.7.0-x64-setup.exe`，123,542,892 字节（约 117.8 MiB）。SHA-256：`10684d8c29d02ef1e88afb5d629787e9cd063e9f7011f5d6afabd969c84b1311`。
+
+生成 `release/manifest-win32.json` 与 `release/SHA256SUMS-win32.txt`，包含当前版本安装包和 blockmap；工具对当前版本必需文件缺失直接失败，不把历史安装包混入清单。`release/win-unpacked/JSONEditor.exe` 为 0.7.0，旧安装包保留。
+
+综合证据为 `docs/phase7-verification.json`，另有 source-e2e、installed-e2e、installer、performance、development-smoke、package-audit 报告。下一步需要真实项目主页 URL 和 Linux runner/桌面环境，执行工作流与 Linux 验收，再处理许可、签名和人工发布门槛。Phase7 总体尚未全部完成，不自动进入其他阶段或对外发布。

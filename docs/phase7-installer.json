@@ -1,0 +1,19 @@
+{
+  "capturedAtUtc": "2026-10-25T14:34:38.2079623Z",
+  "version": "0.7.0",
+  "passed": true,
+  "verificationPassed": true,
+  "installationDirectory": "D:\\4Code\\JSONEditor\\release\\installer-validation\\phase7-install-bb5265b66f244c309bdaf72cf06c57df\\application",
+  "checks": [
+    "previous-0.6.0-install-launch-save",
+    "current-install-registry-shortcut-offline-launch-save",
+    "upgrade-keeps-profile",
+    "uninstall-retains-profile",
+    "uninstall-after-verification-host-exit-removes-executable-registry-shortcut"
+  ],
+  "limitations": [
+    "Silent current-user NSIS flow; interactive wizard, UAC and signed reputation are not tested",
+    "File dialog return is a fixture; disk save, IPC and installed executable are real"
+  ],
+  "completedAtUtc": "2026-10-25T14:35:23.4363740Z"
+}

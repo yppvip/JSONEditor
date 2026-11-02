@@ -1,0 +1,9 @@
+{
+  "capturedAtUtc": "2026-10-25T14:20:16.856Z",
+  "passed": true,
+  "version": "0.7.0",
+  "platform": "win32",
+  "entries": 107,
+  "forbiddenEntries": [],
+  "main": "./out/main/index.js"
+}
