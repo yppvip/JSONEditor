@@ -1,6 +1,8 @@
 # JSONEditor 开发指南
 
-更新日期：2026-10-25（Asia/Shanghai）。本文件是后续人工和 AI 开发的共同依据。发生工具链、数据模型、同步协议或发布方式调整时，同步更新本文件及架构决策记录。
+更新日期：2026-11-03（Asia/Shanghai）。本文件是后续人工和 AI 开发的共同依据。发生工具链、数据模型、同步协议或发布方式调整时，同步更新本文件及架构决策记录。
+
+2026-11-03 新电脑环境重建：当前仓库位于 `D:\Code\JSONEditor`，开发工具和缓存统一使用 `D:\5DevelopmentEnvironment`；复用现有 Node 24.22.1、npm 11.19.1、Git 2.56.0.windows.1、PowerShell 7.6.7、VS Code 1.143.1 及 Python 环境 `D:\2PythonEnv\py13`。独立 pnpm 仍固定 12.15.0，依赖版本与锁文件保持不变。以下旧路径及旧机器验收属于历史记录，当前环境以 [环境重建记录](environment-rebuild-2026-11-03.md) 为准。`.node-version` 保留团队验证基线 24.16.0；本机使用 package.json 允许范围内的更新补丁。
 
 ## 1. 项目概述
 
@@ -88,14 +90,14 @@ code --version
 .\tools\Test-DevelopmentEnvironment.ps1
 ```
 
-Setup 默认复用现有 Node 24，仅在指定版本 pnpm 缺失时安装。若同路径出现异常版本，拒绝覆盖。它不安装 VS Code 扩展；新机器已有 VS Code 时，可按需执行下面两条命令，本机已执行完成：
+Setup 默认复用现有 Node >=24.16.0 <25，仅在指定版本 pnpm 缺失时安装。默认目录为 `D:\5DevelopmentEnvironment`，不修改持久化 PATH；可显式使用 `-AddToUserPath` 添加用户 PATH 并备份原值。若同路径出现异常版本，拒绝覆盖。它不安装 VS Code 扩展；新机器已有 VS Code 时，可按需执行下面两条命令（下方历史基线曾安装，当前机器状态见重建记录）：
 
 ```powershell
 code --install-extension dbaeumer.vscode-eslint
 code --install-extension esbenp.prettier-vscode
 ```
 
-测试脚本重新组合持久化的系统/用户 PATH，排除代理进程注入的工具路径；在 SoftEnv 临时目录验证网络、普通依赖安装执行及锁文件离线复现，保存日期报告。重跑会更新当天报告并保留临时验证目录；脚本不自动删除目录。
+测试脚本重新组合持久化的系统/用户 PATH，并显式激活项目环境，排除代理进程注入的工具路径；在 EnvironmentRoot 临时目录验证网络、普通依赖安装执行及锁文件离线复现，保存日期报告。重跑会更新当天报告并保留临时验证目录；脚本不自动删除目录。
 
 ## 5. 目录结构
 

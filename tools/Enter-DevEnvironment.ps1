@@ -1,6 +1,6 @@
 # Dot-source this file: . .\tools\Enter-DevEnvironment.ps1
 [CmdletBinding()]
-param([string]$EnvironmentRoot = 'C:\Code\SoftEnv')
+param([string]$EnvironmentRoot = 'D:\5DevelopmentEnvironment')
 
 $pnpmDirectory = Join-Path $EnvironmentRoot 'package-manager\pnpm\12.15.0'
 $pnpmCommand = Join-Path $pnpmDirectory 'pnpm.cmd'
@@ -14,6 +14,7 @@ if (($env:Path -split ';') -notcontains $pnpmDirectory) {
 $env:npm_config_cache = Join-Path $EnvironmentRoot 'cache\npm'
 $env:pnpm_config_store_dir = Join-Path $EnvironmentRoot 'cache\pnpm'
 $env:ELECTRON_CACHE = Join-Path $EnvironmentRoot 'cache\electron'
+$env:electron_config_cache = $env:ELECTRON_CACHE
 $env:ELECTRON_BUILDER_CACHE = Join-Path $EnvironmentRoot 'cache\electron-builder'
 Write-Output "Development environment active: $EnvironmentRoot"
 & $pnpmCommand --version

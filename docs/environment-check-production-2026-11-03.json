@@ -1,0 +1,14 @@
+{
+  "capturedAtUtc": "2026-11-03T02:18:03.884Z",
+  "passed": true,
+  "url": "app://editor/index.html",
+  "desktop": {
+    "name": "jsoneditor",
+    "version": "0.7.0",
+    "platform": "win32",
+    "electron": "45.0.0",
+    "sandboxed": true,
+    "contextIsolated": true
+  },
+  "worker": "ready"
+}

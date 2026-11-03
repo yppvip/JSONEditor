@@ -1,5 +1,5 @@
 [CmdletBinding()]
-param([string]$EnvironmentRoot = 'C:\Code\SoftEnv')
+param([string]$EnvironmentRoot = 'D:\5DevelopmentEnvironment')
 
 $ErrorActionPreference = 'Stop'
 $repositoryRoot = Split-Path $PSScriptRoot -Parent
@@ -13,9 +13,11 @@ function Add-Check([string]$Name, [bool]$Passed, [object]$Details) {
 $machinePath = [Environment]::GetEnvironmentVariable('Path', 'Machine')
 $userPath = [Environment]::GetEnvironmentVariable('Path', 'User')
 $env:Path = [Environment]::ExpandEnvironmentVariables($machinePath + ';' + $userPath)
+. (Join-Path $PSScriptRoot 'Enter-DevEnvironment.ps1') -EnvironmentRoot $EnvironmentRoot
 $env:npm_config_cache = Join-Path $EnvironmentRoot 'cache\npm'
 $env:pnpm_config_store_dir = Join-Path $EnvironmentRoot 'cache\pnpm'
 $env:ELECTRON_CACHE = Join-Path $EnvironmentRoot 'cache\electron'
+$env:electron_config_cache = $env:ELECTRON_CACHE
 $env:ELECTRON_BUILDER_CACHE = Join-Path $EnvironmentRoot 'cache\electron-builder'
 
 foreach ($name in @('node', 'npm.cmd', 'pnpm.cmd', 'corepack.cmd', 'git', 'code.cmd')) {
@@ -73,7 +75,7 @@ $report = [ordered]@{
     timezone = 'Asia/Shanghai'
     repository = $repositoryRoot
     environmentRoot = $EnvironmentRoot
-    pathSource = 'Persisted machine PATH + persisted user PATH; agent injected PATH excluded'
+    pathSource = 'Persisted machine PATH + persisted user PATH + explicit project activation; agent injected PATH excluded'
     checks = @($checks.ToArray())
     passed = (@($checks | Where-Object { -not $_.passed }).Count -eq 0)
     notPerformed = @('Electron project initialization', 'Electron binary download and GUI launch', 'Windows installer build', 'Linux build and GUI validation')

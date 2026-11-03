@@ -19,12 +19,15 @@ Electron + React + TypeScript 桌面应用。当前候选版本 0.7.0：文本/�
 Windows PowerShell：
 
 ```powershell
+.\tools\Setup-WindowsEnvironment.ps1
 . .\tools\Enter-DevEnvironment.ps1
 pnpm install --frozen-lockfile
 pnpm dev
 ```
 
 需要 Node 24.16.0（当前验证基线）与 pnpm 12.15.0。
+
+Windows 环境脚本默认将 pnpm 与下载缓存放在 `D:\5DevelopmentEnvironment`，复用已有 Node 24（>=24.16.0），默认不修改系统或用户 PATH。自定义目录时为 Setup、Enter 和 Test 脚本传入相同的 `-EnvironmentRoot`。本机重建记录见 [2026-11-03 环境重建](docs/environment-rebuild-2026-11-03.md)。
 
 ```text
 pnpm check               Lint、格式、类型和单元/组件测试

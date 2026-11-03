@@ -1,7 +1,8 @@
 [CmdletBinding()]
 param(
-    [string]$EnvironmentRoot = 'C:\Code\SoftEnv',
-    [string]$PnpmVersion = '12.15.0'
+    [string]$EnvironmentRoot = 'D:\5DevelopmentEnvironment',
+    [string]$PnpmVersion = '12.15.0',
+    [switch]$AddToUserPath
 )
 
 $ErrorActionPreference = 'Stop'
@@ -10,8 +11,8 @@ if ($PnpmVersion -notmatch '^\d+\.\d+\.\d+$') { throw 'Use an exact stable pnpm 
 $EnvironmentRoot = [IO.Path]::GetFullPath($EnvironmentRoot)
 $nodePath = (Get-Command node.exe -ErrorAction Stop).Source
 $nodeVersion = (& $nodePath --version).Trim()
-if ($LASTEXITCODE -ne 0 -or $nodeVersion -notmatch '^v24\.') {
-    throw "Expected an existing Node.js 24 LTS installation, found $nodeVersion. No Node installation was changed."
+if ($LASTEXITCODE -ne 0 -or $nodeVersion -notmatch '^v24\.' -or [version]$nodeVersion.TrimStart('v') -lt [version]'24.16.0') {
+    throw "Expected an existing Node.js >=24.16.0 <25 installation, found $nodeVersion. No Node installation was changed."
 }
 $npmPath = (Get-Command npm.cmd -ErrorAction Stop).Source
 $pnpmDirectory = Join-Path $EnvironmentRoot "package-manager\pnpm\$PnpmVersion"
@@ -47,7 +48,7 @@ $userEntries = @($userPathBefore -split ';' | Where-Object { $_ })
 $alreadyPresent = @($userEntries | Where-Object {
     [Environment]::ExpandEnvironmentVariables($_).TrimEnd('\') -ieq $pnpmDirectory.TrimEnd('\')
 }).Count -gt 0
-if (-not $alreadyPresent) {
+if ($AddToUserPath -and -not $alreadyPresent) {
     $backupPath = Join-Path $metadataDirectory ('user-path-before-' + [DateTime]::UtcNow.ToString('yyyyMMddTHHmmssfffffffZ') + '.json')
     $backup = [ordered]@{
         capturedAtUtc = [DateTime]::UtcNow.ToString('o')
@@ -60,8 +61,10 @@ if (-not $alreadyPresent) {
     if ([Environment]::GetEnvironmentVariable('Path', 'User') -ne $userPathAfter) { throw 'User PATH verification failed.' }
     Write-Output "Added user PATH entry: $pnpmDirectory"
     Write-Output "Previous user PATH saved to: $backupPath"
-} else {
+} elseif ($alreadyPresent) {
     Write-Output 'User PATH already contains the selected pnpm directory.'
+} else {
+    Write-Output 'User PATH was not changed. Dot-source tools/Enter-DevEnvironment.ps1 in new terminals.'
 }
 $env:Path = $pnpmDirectory + ';' + $env:Path
 Write-Output "Node: $nodeVersion ($nodePath)"

@@ -6,6 +6,9 @@
       "request": "launch",
       "name": "Start JSONEditor development",
       "command": "pnpm dev",
+      "windows": {
+        "command": ". .\\tools\\Enter-DevEnvironment.ps1; pnpm dev"
+      },
       "cwd": "${workspaceFolder}"
     }
   ]
