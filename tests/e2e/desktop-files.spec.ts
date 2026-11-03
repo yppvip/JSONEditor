@@ -62,6 +62,7 @@ test('native-file IPC preserves BOM/CRLF and number lexemes, dirty undo state an
     await page.keyboard.press('ControlOrMeta+S')
     await expect(page.getByTestId('document-name')).toHaveText('bom.json')
     expect(await readFile(path)).toEqual(Buffer.from('\ufeff' + original, 'utf8'))
+    await page.getByRole('button', { name: '更多操作' }).click()
     await expect(page.getByRole('combobox', { name: '最近文件' }).locator('option')).toHaveCount(2)
   } finally {
     await closeApp(app)
@@ -74,6 +75,7 @@ test('saves invalid current JSON as raw text and reopens from persisted recent f
   try {
     await source(page, '{"broken":')
     await savePath(app, path)
+    await page.getByRole('button', { name: '更多操作', exact: true }).click()
     await page.getByRole('button', { name: '另存为', exact: true }).click()
     await expect(page.getByTestId('document-name')).toHaveText('invalid.json')
     expect(await readFile(path, 'utf8')).toBe('{"broken":')
@@ -81,6 +83,7 @@ test('saves invalid current JSON as raw text and reopens from persisted recent f
     const next = await launch(directory)
     app = next.app
     page = next.page
+    await page.getByRole('button', { name: '更多操作' }).click()
     const recent = page.getByRole('combobox', { name: '最近文件' })
     await expect(recent.locator('option')).toHaveCount(2)
     const id = await recent.locator('option').nth(1).getAttribute('value')
@@ -130,6 +133,7 @@ test('external modification blocks Save, while Save As retains both versions', a
     await expect(page.getByRole('alert', { name: '文件操作错误' })).toContainText('磁盘文件已变化')
     expect(await readFile(path, 'utf8')).toBe('{"external":true}')
     await savePath(app, copy)
+    await page.getByRole('button', { name: '更多操作', exact: true }).click()
     await page.getByRole('button', { name: '另存为', exact: true }).click()
     await expect(page.getByTestId('document-name')).toHaveText('copy.json')
     expect(await readFile(copy, 'utf8')).toBe('{"a":2}')
@@ -149,12 +153,14 @@ test('clipboard IPC copies current raw/formatted/compact source and paste is one
         state.fixtureClipboard = text
       }
     })
+    await page.getByRole('button', { name: '更多操作', exact: true }).click()
     await page.getByRole('button', { name: '剪贴板替换全文', exact: true }).click()
     await expect(page.locator('.view-lines')).toContainText('[1,true,null]')
     await page.getByRole('button', { name: '撤销', exact: true }).click()
     await expect(page.locator('.view-lines')).toContainText('Hello, JSON')
     await source(page, '{ "n": 900719925474099312345, "s": "a b \\u0061" }')
     await expect(page.getByTestId('tree-status')).toHaveText('树可编辑')
+    await page.getByRole('button', { name: '复制选项', exact: true }).click()
     await page.getByRole('button', { name: '复制压缩', exact: true }).click()
     await expect(page.getByTestId('file-status')).toContainText('已复制')
     expect(
@@ -162,6 +168,7 @@ test('clipboard IPC copies current raw/formatted/compact source and paste is one
         () => (globalThis as unknown as { fixtureClipboard: string }).fixtureClipboard,
       ),
     ).toBe('{"n":900719925474099312345,"s":"a b \\u0061"}')
+    await page.getByRole('button', { name: '复制选项', exact: true }).click()
     await page.getByRole('button', { name: '复制格式化', exact: true }).click()
     await expect(page.getByTestId('file-status')).toContainText('已复制')
     expect(
@@ -174,6 +181,7 @@ test('clipboard IPC copies current raw/formatted/compact source and paste is one
     const previous = await app.evaluate(
       () => (globalThis as unknown as { fixtureClipboard: string }).fixtureClipboard,
     )
+    await page.getByRole('button', { name: '复制选项', exact: true }).click()
     await page.getByRole('button', { name: '复制格式化', exact: true }).click()
     await expect(page.getByRole('alert', { name: '文件操作错误' })).toContainText('JSON 无效')
     expect(
@@ -181,6 +189,7 @@ test('clipboard IPC copies current raw/formatted/compact source and paste is one
         () => (globalThis as unknown as { fixtureClipboard: string }).fixtureClipboard,
       ),
     ).toBe(previous)
+    await page.getByRole('button', { name: '复制选项', exact: true }).click()
     await page.getByRole('button', { name: '复制原文', exact: true }).click()
     await expect(page.getByTestId('file-status')).toContainText('已复制')
     expect(
@@ -210,7 +219,7 @@ test('native close waits for cancellation, save-dialog cancellation and finally 
     })
     await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0]!.close())
     await expect(page.getByRole('button', { name: '保存', exact: true })).toBeEnabled()
-    expect(await page.locator('.view-lines').textContent()).toContain('"broken"')
+    await expect(page.locator('.view-lines')).toContainText('"broken"')
     await savePath(app, path)
     const closed = app.waitForEvent('close')
     await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0]!.close())

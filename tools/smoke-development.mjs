@@ -38,7 +38,10 @@ try {
   browser = await chromium.connectOverCDP(endpoint)
   const page = browser.contexts()[0]?.pages()[0]
   if (!page) throw new Error('Development window is missing')
+  await page.getByRole('button', { name: '更多操作' }).click()
+  await page.getByRole('button', { name: '关于 JSONEditor' }).click()
   await expect(page.getByRole('status', { name: '桌面连接' })).toHaveText(/桌面连接正常/)
+  await page.getByRole('button', { name: '关闭操作面板' }).click()
   await expect(page.getByTestId('worker-status')).toHaveText('后台环境就绪')
   await expect(page.getByTestId('json-status')).toHaveText(/JSON 有效/)
   await expect(page.locator('.monaco-editor')).toBeVisible()
@@ -47,7 +50,7 @@ try {
   await mkdir('test-results', { recursive: true })
   await page.screenshot({ path: 'test-results/development.png' })
   await writeFile(
-    'docs/phase7-development-smoke.json',
+    process.env.JSONEDITOR_SMOKE_REPORT ?? 'docs/phase7-development-smoke.json',
     JSON.stringify(
       {
         capturedAtUtc: new Date().toISOString(),

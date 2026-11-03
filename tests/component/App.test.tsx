@@ -59,7 +59,10 @@ beforeEach(() => {
 
 it('shows desktop and JSON status, and delegates toolbar actions', async () => {
   render(<App />)
+  fireEvent.click(screen.getByRole('button', { name: '更多操作' }))
+  fireEvent.click(screen.getByRole('button', { name: '关于 JSONEditor' }))
   expect((await screen.findByText('桌面连接正常 · v0.1.0')).textContent).toContain('v0.1.0')
+  fireEvent.click(screen.getByRole('button', { name: '关闭操作面板' }))
   await screen.findByText('JSON 有效')
   fireEvent.click(screen.getByRole('button', { name: '格式化' }))
   fireEvent.click(screen.getByRole('button', { name: '校验' }))

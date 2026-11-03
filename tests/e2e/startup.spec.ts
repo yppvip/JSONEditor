@@ -8,8 +8,11 @@ test('local application loads with isolated IPC and a working bundled Worker', a
     const page = await application.firstWindow()
     const errors: string[] = []
     page.on('pageerror', (error) => errors.push(error.message))
-    await expect(page.getByRole('heading', { name: 'JSONEditor' })).toBeVisible()
+    await expect(page.getByRole('toolbar', { name: '文件与文本操作' })).toBeVisible()
+    await page.getByRole('button', { name: '更多操作' }).click()
+    await page.getByRole('button', { name: '关于 JSONEditor' }).click()
     await expect(page.getByRole('status', { name: '桌面连接' })).toHaveText(/桌面连接正常/)
+    await page.getByRole('button', { name: '关闭操作面板' }).click()
     await expect(page.getByTestId('worker-status')).toHaveText('后台环境就绪')
     expect(page.url()).toBe('app://editor/index.html')
     const boundary = await page.evaluate(() => ({

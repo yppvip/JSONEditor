@@ -21,16 +21,12 @@ export function App(): React.JSX.Element {
   }, [])
   return (
     <main>
-      <header className="app-header">
-        <div>
-          <h1>JSONEditor</h1>
-          <p>JSON 文本编辑</p>
-        </div>
-        <p role="status" aria-label="桌面连接" className="desktop-status">
-          {error ? '桌面连接失败' : info ? `桌面连接正常 · v${info.version}` : '正在连接桌面环境…'}
-        </p>
-      </header>
-      <JsonTextEditor />
+      <JsonTextEditor
+        desktopStatus={
+          error ? '桌面连接失败' : info ? `桌面连接正常 · v${info.version}` : '正在连接桌面环境…'
+        }
+        desktopError={error}
+      />
     </main>
   )
 }

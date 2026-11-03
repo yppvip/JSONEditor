@@ -12,3 +12,4 @@ playwright-report/
 !.env.example
 .DS_Store
 Thumbs.db
+.finesse/

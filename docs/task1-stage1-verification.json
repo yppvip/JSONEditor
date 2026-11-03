@@ -1,0 +1,39 @@
+{
+  "stage": 1,
+  "date": "2026-11-03",
+  "check": {
+    "passed": true,
+    "unitAndComponentTests": 215
+  },
+  "build": {
+    "passed": true
+  },
+  "e2e": {
+    "totalScenarios": 31,
+    "initialPasses": 28,
+    "initialFailures": 3,
+    "correctedRetestPasses": 3,
+    "allScenariosVerified": true
+  },
+  "developmentSmoke": "task1-stage1-development-smoke.json",
+  "layout": {
+    "contentViewports": [
+      [1100, 760],
+      [640, 480]
+    ],
+    "primaryActionsSingleRow": true,
+    "noPageOverflow": true,
+    "screenshotsInspected": true
+  },
+  "contrastRatios": {
+    "text": 15.19,
+    "muted": 5.63,
+    "primary": 5.79,
+    "success": 5.45,
+    "error": 6.35
+  },
+  "limitations": [
+    "System display scaling at 125% and 150% not verified",
+    "No installer build or release"
+  ]
+}

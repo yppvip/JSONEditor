@@ -5,6 +5,7 @@ import type { EditorStatus, EditorView } from './create-editor'
 import { JsonTreeEditor } from '../tree-editor/JsonTreeEditor'
 import { DesktopDocumentSession } from './desktop-session'
 import { desktopShortcut } from '../../shared/desktop-shortcuts'
+import { WorkspaceToolbar } from '../ui/WorkspaceToolbar'
 
 const labels = {
   waiting: '正在准备编辑环境…',
@@ -16,7 +17,13 @@ const labels = {
   failed: '后台校验不可用',
 }
 
-export function JsonTextEditor(): React.JSX.Element {
+export function JsonTextEditor({
+  desktopStatus,
+  desktopError,
+}: {
+  desktopStatus: string
+  desktopError: boolean
+}): React.JSX.Element {
   const container = useRef<HTMLDivElement>(null)
   const view = useRef<EditorView | null>(null)
   const [status, setStatus] = useState<EditorStatus>({
@@ -120,102 +127,25 @@ export function JsonTextEditor(): React.JSX.Element {
   const warnings = status.problems.filter((problem) => problem.severity === 'warning').length
   return (
     <section className="text-workspace" aria-label="JSON 文本工作区">
-      <div className="file-toolbar" role="toolbar" aria-label="文件与剪贴板操作">
-        <button disabled={fileBusy} title="Ctrl+N" onClick={() => void files.dispatch('new')}>
-          新建
-        </button>
-        <button disabled={fileBusy} title="Ctrl+O" onClick={() => void files.dispatch('open')}>
-          打开
-        </button>
-        <button disabled={fileBusy} title="Ctrl+S" onClick={() => void files.dispatch('save')}>
-          保存
-        </button>
-        <button
-          disabled={fileBusy}
-          title="Ctrl+Shift+S"
-          onClick={() => void files.dispatch('saveAs')}
-        >
-          另存为
-        </button>
-        <span className="toolbar-separator" />
-        <button
-          disabled={fileBusy}
-          title="Ctrl+Shift+C"
-          onClick={() => void files.dispatch('copyRaw')}
-        >
-          复制原文
-        </button>
-        <button
-          disabled={fileBusy || busy}
-          title="Ctrl+Alt+C"
-          onClick={() => void files.dispatch('copyFormatted')}
-        >
-          复制格式化
-        </button>
-        <button
-          disabled={fileBusy || busy}
-          title="Ctrl+Alt+M"
-          onClick={() => void files.dispatch('copyCompact')}
-        >
-          复制压缩
-        </button>
-        <button
-          disabled={fileBusy}
-          title="Ctrl+Alt+V；一次可撤销事务"
-          onClick={() => void files.dispatch('paste')}
-        >
-          剪贴板替换全文
-        </button>
-        <select
-          aria-label="最近文件"
-          value=""
-          disabled={fileBusy}
-          onChange={(event) => {
-            if (event.target.value) void files.open(event.target.value)
-          }}
-        >
-          <option value="">最近文件…</option>
-          {fileStatus.recent.map((item) => (
-            <option key={item.id} value={item.id}>
-              {item.name} — {item.path}
-            </option>
-          ))}
-        </select>
-      </div>
-      <p
-        className={`file-status ${fileStatus.error ? 'error' : ''}`}
-        role={fileStatus.error ? 'alert' : 'status'}
-        aria-label={fileStatus.error ? '文件操作错误' : '文件操作状态'}
-        data-testid="file-status"
-      >
-        {fileStatus.busy
-          ? '文件/剪贴板操作中…'
-          : fileStatus.message ||
-            (fileStatus.dirty
-              ? '有未保存的修改。'
-              : fileStatus.file
-                ? '已保存。'
-                : '新文档尚未保存。')}
-      </p>
-      <div className="toolbar" role="toolbar" aria-label="文本操作">
-        <button
-          onClick={() => view.current?.format()}
-          disabled={busy || fileStatus.loading}
-          title="Ctrl+Shift+F"
-        >
-          格式化
-        </button>
-        <button onClick={() => view.current?.validate()} disabled={busy}>
-          校验
-        </button>
-        <span className="toolbar-separator" />
-        <button onClick={() => view.current?.undo()}>撤销</button>
-        <button onClick={() => view.current?.redo()}>重做</button>
-        <span className="document-label" title={fileStatus.file?.path} data-testid="document-name">
-          {name}
-          {fileStatus.dirty ? ' · 已修改' : ''}
-        </span>
-      </div>
+      <WorkspaceToolbar
+        name={name}
+        path={fileStatus.file?.path}
+        dirty={fileStatus.dirty}
+        fileBusy={fileBusy}
+        busy={busy}
+        loading={fileStatus.loading}
+        recent={fileStatus.recent}
+        desktopStatus={desktopStatus}
+        onAction={(action) => void files.dispatch(action)}
+        onOpenRecent={(id) => void files.open(id)}
+        onFormat={() => view.current?.format()}
+        onValidate={() => view.current?.validate()}
+      />
+      {desktopError && (
+        <p className="connection-error" role="alert">
+          {desktopStatus}
+        </p>
+      )}
       {status.largeFile && (
         <p className="notice">大文件模式：已暂停自动校验，请使用“校验”或“格式化”。</p>
       )}
@@ -242,14 +172,51 @@ export function JsonTextEditor(): React.JSX.Element {
           {warnings ? ` · ${warnings} 个警告` : ''}
           {errors ? ` · ${errors} 个错误` : ''}
         </span>
-        <span data-testid="worker-status">
+        <span
+          className={`file-status ${fileStatus.error ? 'error' : ''}`}
+          role={fileStatus.error ? 'alert' : 'status'}
+          aria-label={fileStatus.error ? '文件操作错误' : '文件操作状态'}
+          data-testid="file-status"
+          title={
+            fileStatus.message ||
+            (fileStatus.dirty
+              ? '有未保存的修改。'
+              : fileStatus.file
+                ? '已保存。'
+                : '新文档尚未保存。')
+          }
+        >
+          {fileStatus.busy
+            ? '文件/剪贴板操作中…'
+            : fileStatus.message ||
+              (fileStatus.dirty
+                ? '有未保存的修改。'
+                : fileStatus.file
+                  ? '已保存。'
+                  : '新文档尚未保存。')}
+        </span>
+        <span
+          className="worker-status"
+          data-testid="worker-status"
+          title={
+            status.durationMs !== null ? `校验耗时 ${status.durationMs.toFixed(1)} ms` : undefined
+          }
+        >
           {status.workerReady
             ? '后台环境就绪'
             : status.state === 'failed'
               ? '后台不可用'
               : '后台启动中…'}
         </span>
-        {status.durationMs !== null && <span>{status.durationMs.toFixed(1)} ms</span>}
+        <span
+          className="file-encoding"
+          title={
+            fileStatus.file?.path ??
+            '新文档尚未保存；可使用“保存”选择位置。非法 JSON 可按原文保存。'
+          }
+        >
+          UTF-8{fileStatus.file?.bom ? ' BOM' : ''} · {fileStatus.file?.eol ?? 'LF'}
+        </span>
       </div>
       {status.state === 'failed' && (
         <div className="notice" role="alert">
@@ -275,12 +242,6 @@ export function JsonTextEditor(): React.JSX.Element {
           {status.diagnosticsTruncated && <p>问题较多，仅显示前 100 项。</p>}
         </aside>
       )}
-      <p className="document-note">
-        {fileStatus.file
-          ? `${fileStatus.file.path} · UTF-8${fileStatus.file.bom ? ' BOM' : ''} · ${fileStatus.file.eol}`
-          : '新文档尚未保存；可使用“保存”选择位置。'}{' '}
-        非法 JSON 可按原文保存。
-      </p>
     </section>
   )
 }
