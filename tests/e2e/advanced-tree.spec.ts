@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test'
 import type { Page } from '@playwright/test'
 import { launchApp } from './launch-app'
 import { closeApp } from './close-app'
-import { menuAction, nodeMenu, closeNodeDialog } from './tree-actions'
+import { menuAction, nodeMenu, closeNodeDialog, dragNode } from './tree-actions'
 
 async function runEditor(run: (page: Page) => Promise<void>): Promise<void> {
   const app = await launchApp()
@@ -35,33 +35,6 @@ function row(page: Page, key: string) {
 }
 async function keys(page: Page): Promise<string[]> {
   return page.locator('.tree-key').allTextContents()
-}
-
-async function dragHtml5(page: Page, from: string, to: string, inside = false): Promise<void> {
-  const handle = row(page, from).locator('.tree-drag-handle')
-  const target = row(page, to).locator('..')
-  const box = (await target.boundingBox())!
-  const transfer = await page.evaluateHandle(() => new DataTransfer())
-  try {
-    await handle.dispatchEvent('dragstart', { dataTransfer: transfer })
-    const event = {
-      dataTransfer: transfer,
-      clientX: box.x + 100,
-      clientY: box.y + (inside ? box.height / 2 : box.height - 2),
-    }
-    await target.dispatchEvent('dragenter', event)
-    await target.dispatchEvent('dragover', event)
-    await page.evaluate(
-      () => new Promise<void>((resolve) => requestAnimationFrame(() => resolve())),
-    )
-    await target.dispatchEvent('dragover', event)
-    if (inside) await expect(row(page, to)).toHaveClass(/drop-target/)
-    await target.dispatchEvent('drop', event)
-    // The source may have a new label or live inside a collapsed container after a move.
-    await page.locator('[role="tree"]').dispatchEvent('dragend', { dataTransfer: transfer })
-  } finally {
-    await transfer.dispose()
-  }
 }
 
 test('move buttons and sort preserve property IDs and share the text undo history', async () => {
@@ -123,11 +96,11 @@ test('cross-container move form preserves a subtree, prevents cycles and rejects
   })
 })
 
-test('HTML5 drag events reorder siblings and undo restores their identities', async () => {
+test('Right-button drags reorder siblings and undo restores their identities', async () => {
   await runEditor(async (page) => {
     await source(page, '{"a":1,"b":2,"c":3}')
     const id = await row(page, 'a').getAttribute('data-node-id')
-    await dragHtml5(page, 'a', 'c')
+    await dragNode(page, 'a', 'c')
     await expect.poll(() => keys(page)).toEqual(['$', 'b', 'c', 'a'])
     await ready(page)
     await expect(row(page, 'a')).toHaveAttribute('data-node-id', id!)
@@ -137,11 +110,11 @@ test('HTML5 drag events reorder siblings and undo restores their identities', as
   })
 })
 
-test('HTML5 cross-container drop keeps the subtree ID and opens its destination', async () => {
+test('Right-button cross-container drop keeps the subtree ID and opens its destination', async () => {
   await runEditor(async (page) => {
     await source(page, '{"a":{"x":1},"items":[],"other":{}}')
     const id = await row(page, 'a').getAttribute('data-node-id')
-    await dragHtml5(page, 'a', 'items', true)
+    await dragNode(page, 'a', 'items', true)
     await ready(page)
     await expect(row(page, '[0]')).toHaveAttribute('data-node-id', id!)
     await page.getByRole('button', { name: '展开 [0]', exact: true }).click()

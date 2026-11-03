@@ -78,7 +78,7 @@ try {
     .locator('.json-tree-row')
     .filter({ has: page.locator('.tree-key').filter({ hasText: /^\$$/ }) })
     .locator('.tree-drag-handle')
-    .click({ button: 'right' })
+    .click()
   await page.getByRole('menuitem', { name: '更多', exact: true }).click()
   const sortStarted = performance.now()
   await page.getByRole('menuitem', { name: '子节点降序', exact: true }).click()

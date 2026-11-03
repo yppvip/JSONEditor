@@ -102,9 +102,10 @@ for (const scale of [1, 1.25, 1.5]) {
         const handle = treeRow(page, 'message').locator('.tree-drag-handle')
         await handle.evaluate((element) =>
           element.dispatchEvent(
-            new MouseEvent('contextmenu', {
+            new MouseEvent('click', {
               bubbles: true,
               cancelable: true,
+              detail: 1,
               clientX: innerWidth - 2,
               clientY: innerHeight - 2,
             }),

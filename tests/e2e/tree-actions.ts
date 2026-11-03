@@ -8,8 +8,25 @@ export function treeRow(page: Page, key: string) {
   })
 }
 export async function nodeMenu(page: Page, key: string) {
-  await treeRow(page, key).locator('.tree-drag-handle').click({ button: 'right' })
+  await treeRow(page, key).locator('.tree-drag-handle').click()
   await expect(page.getByRole('menu', { name: '节点菜单', exact: true })).toBeVisible()
+}
+export async function dragNode(page: Page, from: string, to: string, inside = false) {
+  const handle = treeRow(page, from).locator('.tree-drag-handle')
+  const start = (await handle.boundingBox())!
+  const target = treeRow(page, to)
+  const box = (await target.boundingBox())!
+  await page.mouse.move(start.x + start.width / 2, start.y + start.height / 2)
+  await page.mouse.down({ button: 'right' })
+  try {
+    await page.mouse.move(box.x + 100, box.y + (inside ? box.height / 2 : box.height - 2), {
+      steps: 10,
+    })
+    await expect(page.locator('.tree-viewport')).toHaveAttribute('data-handle-dragging', 'true')
+    if (inside) await expect(target).toHaveAttribute('data-pointer-drop', 'inside')
+  } finally {
+    await page.mouse.up({ button: 'right' })
+  }
 }
 export async function menuAction(page: Page, key: string, name: string, group?: '更多' | '类型') {
   await nodeMenu(page, key)

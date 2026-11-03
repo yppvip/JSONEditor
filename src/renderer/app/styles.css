@@ -423,7 +423,7 @@ kbd {
 .json-tree-row.selected {
   background: var(--selection);
 }
-.json-tree-row.drop-target {
+.json-tree-row[data-pointer-drop='inside'] {
   background: var(--selection);
   box-shadow: inset 0 0 0 1px var(--accent);
 }
@@ -616,6 +616,30 @@ kbd {
 }
 .tree-drag-handle[data-can-drag='false'] {
   cursor: context-menu;
+}
+.tree-viewport[data-handle-dragging='true'],
+.tree-viewport[data-handle-dragging='true'] * {
+  cursor: grabbing;
+  user-select: none;
+}
+.json-tree-row[data-pointer-drop='invalid'] {
+  box-shadow: inset 0 0 0 1px var(--danger);
+}
+.tree-drag-hint {
+  position: fixed;
+  z-index: 130;
+  pointer-events: none;
+  padding: 5px 8px;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: var(--popup-shadow);
+  font-size: 12px;
+  max-width: calc(100vw - 16px);
+}
+.tree-drag-hint[data-valid='false'] {
+  border-color: var(--danger);
 }
 .tree-drag-handle:focus-visible {
   outline: 2px solid var(--accent);

@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test'
 import type { Page } from '@playwright/test'
 import { launchApp } from './launch-app'
 import { closeApp } from './close-app'
-import { menuAction, nodeMenu, treeRow } from './tree-actions'
+import { menuAction, nodeMenu, treeRow, dragNode } from './tree-actions'
 
 interface Sample {
   name: string
@@ -51,24 +51,7 @@ async function source(page: Page) {
   await expect(page.getByTestId('tree-status')).toHaveText('树可编辑')
 }
 async function drag(page: Page) {
-  const handle = treeRow(page, 'a').locator('.tree-drag-handle'),
-    target = treeRow(page, 'c').locator('..')
-  const box = (await target.boundingBox())!,
-    transfer = await page.evaluateHandle(() => new DataTransfer())
-  try {
-    await handle.dispatchEvent('dragstart', { dataTransfer: transfer })
-    const event = { dataTransfer: transfer, clientX: box.x + 100, clientY: box.y + box.height - 2 }
-    await target.dispatchEvent('dragenter', event)
-    await target.dispatchEvent('dragover', event)
-    await page.evaluate(
-      () => new Promise<void>((resolve) => requestAnimationFrame(() => resolve())),
-    )
-    await target.dispatchEvent('dragover', event)
-    await target.dispatchEvent('drop', event)
-    await page.getByRole('tree').dispatchEvent('dragend', { dataTransfer: transfer })
-  } finally {
-    await transfer.dispose()
-  }
+  await dragNode(page, 'a', 'c')
   await expect.poll(() => page.locator('.tree-key').allTextContents()).toEqual(['$', 'b', 'c', 'a'])
 }
 test('menu entrances clean inline styles and interrupted menus release detached elements', async () => {

@@ -21,7 +21,7 @@ async function openFile(app: ElectronApplication, page: Page, path: string) {
   await expect(page.getByTestId('tree-status')).toHaveText('树可编辑')
 }
 async function setMode(page: Page, mode: 'auto' | 'string') {
-  await page.locator('.json-tree-row.selected .tree-drag-handle').click({ button: 'right' })
+  await page.locator('.json-tree-row.selected .tree-drag-handle').click()
   await page.getByRole('menuitem', { name: '类型', exact: true }).click()
   await page
     .getByRole('menuitemradio', { name: mode === 'auto' ? '自动' : '字符串', exact: true })

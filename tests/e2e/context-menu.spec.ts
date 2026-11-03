@@ -99,9 +99,10 @@ test('keyboard submenus, dismissal, boundary placement and readonly actions work
     await expect(treeRow(page, 'a').locator('.tree-type')).toHaveAttribute('data-mode', 'string')
     await handle.evaluate((element) =>
       element.dispatchEvent(
-        new MouseEvent('contextmenu', {
+        new MouseEvent('click', {
           bubbles: true,
           cancelable: true,
+          detail: 1,
           clientX: 620,
           clientY: 440,
         }),
@@ -141,16 +142,12 @@ test('dragging near a viewport edge scrolls virtual rows and ends without changi
     const page = await app.firstWindow()
     await expect(page.getByTestId('tree-status')).toHaveText('树可编辑')
     await source(page, JSON.stringify(Array.from({ length: 1000 }, (_, i) => i)))
-    const transfer = await page.evaluateHandle(() => new DataTransfer())
     const handle = treeRow(page, '[0]').locator('.tree-drag-handle')
-    await handle.dispatchEvent('dragstart', { dataTransfer: transfer })
+    await handle.hover()
+    await page.mouse.down({ button: 'right' })
     const viewport = page.locator('.tree-viewport'),
       box = (await viewport.boundingBox())!
-    await viewport.dispatchEvent('dragover', {
-      dataTransfer: transfer,
-      clientX: box.x + 50,
-      clientY: box.y + box.height - 5,
-    })
+    await page.mouse.move(box.x + 100, box.y + box.height - 25, { steps: 10 })
     await expect
       .poll(() =>
         page.getByRole('tree').evaluate((element) => {
@@ -163,8 +160,9 @@ test('dragging near a viewport edge scrolls virtual rows and ends without changi
         }),
       )
       .toBeGreaterThan(0)
-    await viewport.dispatchEvent('dragend', { dataTransfer: transfer })
-    await transfer.dispose()
+    await page.keyboard.press('Escape')
+    await page.mouse.up({ button: 'right' })
+    await expect(page.locator('.tree-drag-hint')).toHaveCount(0)
     await expect(page.getByTestId('tree-count')).toHaveText('1,001 个节点')
     await expect(page.locator('.view-lines')).toContainText('998,999')
   } finally {
@@ -172,7 +170,7 @@ test('dragging near a viewport edge scrolls virtual rows and ends without changi
   }
 })
 
-test('native left-button handle drag has a movement threshold and reorders siblings', async () => {
+test('right-button handle drag has a movement threshold and reorders siblings', async () => {
   const app = await launchApp()
   try {
     const page = await app.firstWindow()
@@ -181,19 +179,69 @@ test('native left-button handle drag has a movement threshold and reorders sibli
     const from = (await treeRow(page, 'a').locator('.tree-drag-handle').boundingBox())!
     const to = (await treeRow(page, 'c').locator('..').boundingBox())!
     await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2)
-    await page.mouse.down({ button: 'left' })
+    await page.mouse.down({ button: 'right' })
     await page.mouse.move(from.x + from.width / 2 + 2, from.y + from.height / 2)
     await expect(treeRow(page, 'a').first()).toHaveAttribute('data-dragging', 'false')
     await page.mouse.move(to.x + 100, to.y + to.height - 2, { steps: 10 })
-    await page.mouse.up({ button: 'left' })
+    await expect(treeRow(page, 'a')).toHaveAttribute('data-dragging', 'true')
+    await page.mouse.up({ button: 'right' })
     await expect
       .poll(() => page.locator('.tree-key').allTextContents())
       .toEqual(['$', 'b', 'c', 'a'])
+    await expect(page.getByRole('menu', { name: '节点菜单', exact: true })).toHaveCount(0)
+    await expect(page.locator('.tree-drag-hint, .handle-drop-cursor')).toHaveCount(0)
     expect(
       await treeRow(page, 'a')
         .locator('[data-edit-field="value"]')
         .evaluate((element) => (element as HTMLButtonElement).draggable),
     ).toBe(false)
+  } finally {
+    await closeApp(app)
+  }
+})
+
+test('only handle left clicks open menus; left dragging and right short clicks never move nodes', async () => {
+  const app = await launchApp()
+  try {
+    const page = await app.firstWindow()
+    await source(page, '{"a":1,"b":2,"items":[]}')
+    const handle = treeRow(page, 'a').locator('.tree-drag-handle')
+    await handle.click({ button: 'right' })
+    await expect(page.getByRole('menu')).toHaveCount(0)
+    await expect(page.locator('.tree-drag-hint')).toHaveCount(0)
+    await handle.click()
+    await expect(page.getByRole('menu', { name: '节点菜单', exact: true })).toBeVisible()
+    await page.keyboard.press('Escape')
+    for (const key of ['Enter', 'Space', 'Shift+F10']) {
+      await handle.press(key)
+      await expect(page.getByRole('menu', { name: '节点菜单', exact: true })).toBeVisible()
+      await page.keyboard.press('Escape')
+    }
+    await handle.hover()
+    await page.mouse.down({ button: 'left' })
+    const target = (await treeRow(page, 'b').boundingBox())!
+    await page.mouse.move(target.x + 100, target.y + target.height - 2, { steps: 10 })
+    await page.mouse.up({ button: 'left' })
+    await expect(page.locator('[data-handle-dragging], .tree-drag-hint')).toHaveCount(0)
+    expect(await page.locator('.tree-key').allTextContents()).toEqual(['$', 'a', 'b', 'items'])
+    await treeRow(page, 'a').locator('[data-edit-field="value"]').click()
+    await expect(page.getByRole('textbox', { name: '行内值' })).toHaveValue('1')
+    await page.keyboard.press('Escape')
+    await page.getByRole('button', { name: '展开 items', exact: true }).click()
+    await expect(page.getByRole('button', { name: '折叠 items', exact: true })).toBeVisible()
+    // The handle gesture must not swallow contextmenu events belonging to the code editor.
+    const code = page.locator('.view-lines')
+    await code.evaluate((element) =>
+      element.addEventListener(
+        'contextmenu',
+        () => {
+          ;(element as HTMLElement).dataset.contextMenuReceived = 'true'
+        },
+        { once: true, capture: true },
+      ),
+    )
+    await code.click({ button: 'right' })
+    await expect(code).toHaveAttribute('data-context-menu-received', 'true')
   } finally {
     await closeApp(app)
   }

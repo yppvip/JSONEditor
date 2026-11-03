@@ -11,7 +11,6 @@ import {
 } from 'react'
 import { Tree } from 'react-arborist'
 import type { NodeRendererProps, TreeApi, NodeApi } from 'react-arborist'
-import type { ComponentProps } from 'react'
 import { indexTree } from '../../core/tree-model/model'
 import type { JsonTreeNode, JsonTreeProjection } from '../../core/tree-model/model'
 import type { TreeCommand } from '../../core/commands/tree-commands'
@@ -21,7 +20,7 @@ import { TreeContextMenu } from './TreeContextMenu'
 import { NodeDialog } from './NodeDialog'
 import { OpenNodeMenu } from './menu-context'
 import type { MenuAnchor } from './menu-context'
-import { DropCursor } from './DropCursor'
+import { useHandleDrag } from './use-handle-drag'
 import { DropFeedback } from './DropFeedback'
 import { TreePresentationStore, presentationRoots } from './presentation-store'
 import type { PresentationNode } from './presentation-store'
@@ -29,7 +28,6 @@ import { InlineEdit } from './InlineEdit'
 import { BeginInlineEdit } from './inline-edit-context'
 
 const RowStore = createContext<TreePresentationStore | null>(null)
-type PresentationTreeProps = ComponentProps<typeof Tree<PresentationNode>>
 
 function label(node: JsonTreeNode): string {
   const name =
@@ -43,11 +41,7 @@ function label(node: JsonTreeNode): string {
   return name.length > 70 ? name.slice(0, 70) + '…' : name
 }
 
-function TreeRow({
-  node,
-  style,
-  dragHandle,
-}: NodeRendererProps<PresentationNode>): React.JSX.Element | null {
+function TreeRow({ node, style }: NodeRendererProps<PresentationNode>): React.JSX.Element | null {
   const store = useContext(RowStore)!
   const begin = useContext(BeginInlineEdit)
   const openMenu = useContext(OpenNodeMenu)
@@ -79,26 +73,30 @@ function TreeRow({
       }}
     >
       <div
-        ref={enabled && data.parentId !== null ? dragHandle : undefined}
         className="tree-drag-handle"
         role="button"
         tabIndex={0}
         aria-haspopup="menu"
         data-can-drag={enabled && data.parentId !== null}
         title={
-          enabled && data.parentId !== null ? `按住拖动 ${name}；右键打开菜单` : `节点菜单 ${name}`
+          enabled && data.parentId !== null
+            ? `左键打开菜单；按住右键拖动 ${name}`
+            : `节点菜单 ${name}`
         }
         aria-label={`节点菜单 ${name}`}
-        onContextMenu={(event) => {
-          event.preventDefault()
+        onClick={(event) => {
           event.stopPropagation()
           node.select()
           const rect = event.currentTarget.getBoundingClientRect()
           openMenu({
             id: node.id,
-            x: Number.isFinite(event.clientX) ? event.clientX : rect.left,
-            y: Number.isFinite(event.clientY) ? event.clientY : rect.bottom,
+            x: event.detail ? event.clientX : rect.left,
+            y: event.detail ? event.clientY : rect.bottom,
           })
+        }}
+        onContextMenu={(event) => {
+          event.preventDefault()
+          event.stopPropagation()
         }}
         onKeyDown={(event) => {
           if (event.key === 'Enter' || event.key === ' ') {
@@ -240,31 +238,24 @@ export function JsonTreeEditor({
   const selected = index.get(selectedId ?? tree?.rootId ?? '') ?? index.get(tree?.rootId ?? '')
   const rootId = tree?.rootId
   const initialOpenState = useMemo(() => (rootId ? { [rootId]: true } : {}), [rootId])
-  // Arborist caches this flag while building topology. Dynamic read-only state hides the
-  // source handle and is independently enforced by canDrop and the document command gate.
-  const disableDrag = useCallback((node: PresentationNode) => node.parentId === null, [])
-  const disableDrop = useCallback<
-    Exclude<PresentationTreeProps['disableDrop'], string | boolean | undefined>
-  >(
-    ({ parentNode, dragNodes, index: position }) =>
-      dragNodes.length !== 1 ||
-      !parentNode ||
-      !store.canDrop(dragNodes[0]!.id, parentNode.id, position),
-    [store],
-  )
-  const move = useCallback<NonNullable<PresentationTreeProps['onMove']>>(
-    ({ parentId, dragIds, index: position }) => {
-      if (parentId && dragIds.length === 1 && store.canDrop(dragIds[0]!, parentId, position)) {
-        const action = store.move(dragIds[0]!, parentId, position),
-          tree = store.tree!
-        const node = indexTree(tree).get(action.nodeId)!
-        if (
-          node.parentId !== parentId ||
-          indexTree(tree).get(parentId)!.children.indexOf(node.id) !== action.index
-        )
-          pendingDrop.current = { ...action, revision: tree.revision, documentId: tree.documentId }
-        store.drop(dragIds[0]!, parentId, position)
+  const drop = useCallback(
+    (nodeId: string, parentId: string, position: number) => {
+      if (!store.canDrop(nodeId, parentId, position)) return
+      const action = store.move(nodeId, parentId, position),
+        currentTree = store.tree!
+      const node = indexTree(currentTree).get(nodeId)!
+      if (
+        node.parentId === parentId &&
+        indexTree(currentTree).get(parentId)!.children.indexOf(nodeId) === action.index
+      )
+        return
+      pendingDrop.current = {
+        ...action,
+        revision: currentTree.revision,
+        documentId: currentTree.documentId,
       }
+      api.current?.open(parentId)
+      store.drop(nodeId, parentId, position)
     },
     [store],
   )
@@ -311,53 +302,7 @@ export function JsonTreeEditor({
     observer.observe(area.current)
     return () => observer.disconnect()
   }, [])
-  useEffect(() => {
-    const viewport = area.current
-    if (!viewport) return
-    let dragging = false,
-      frame = 0,
-      speed = 0
-    const tick = () => {
-      if (!dragging || !live.current.current) {
-        frame = 0
-        return
-      }
-      if (speed) api.current?.listEl.current?.scrollBy(0, speed)
-      frame = requestAnimationFrame(tick)
-    }
-    const start = (event: DragEvent) => {
-      dragging =
-        event.target instanceof Element &&
-        !!event.target.closest('.tree-drag-handle[data-can-drag="true"]')
-      if (dragging && !frame) frame = requestAnimationFrame(tick)
-    }
-    const over = (event: DragEvent) => {
-      const rect = viewport.getBoundingClientRect()
-      speed = event.clientY < rect.top + 32 ? -10 : event.clientY > rect.bottom - 32 ? 10 : 0
-    }
-    const stop = () => {
-      dragging = false
-      speed = 0
-      cancelAnimationFrame(frame)
-      frame = 0
-    }
-    const leave = (event: DragEvent) => {
-      if (!viewport.contains(event.relatedTarget as Node | null)) speed = 0
-    }
-    viewport.addEventListener('dragstart', start)
-    viewport.addEventListener('dragover', over)
-    viewport.addEventListener('dragleave', leave)
-    document.addEventListener('dragend', stop, true)
-    document.addEventListener('drop', stop, true)
-    return () => {
-      stop()
-      viewport.removeEventListener('dragstart', start)
-      viewport.removeEventListener('dragover', over)
-      viewport.removeEventListener('dragleave', leave)
-      document.removeEventListener('dragend', stop, true)
-      document.removeEventListener('drop', stop, true)
-    }
-  }, [])
+  useHandleDrag({ viewport: area, api, store, tree, current, onStart: closeMenu, onDrop: drop })
   useEffect(() => {
     const creation = pending.current
     if (error && current) {
@@ -488,10 +433,8 @@ export function JsonTreeEditor({
                   openByDefault={false}
                   initialOpenState={initialOpenState}
                   selection={selected?.id ?? tree.rootId}
-                  disableDrag={disableDrag}
-                  disableDrop={disableDrop}
-                  onMove={move}
-                  renderCursor={DropCursor}
+                  disableDrag
+                  disableDrop
                   disableEdit
                   disableMultiSelection
                   selectionFollowsFocus
