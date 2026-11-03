@@ -20,6 +20,8 @@ import { Icon } from '../ui/Icon'
 import { StructuralActions } from './StructuralActions'
 import { TreePresentationStore, presentationRoots } from './presentation-store'
 import type { PresentationNode } from './presentation-store'
+import { InlineEdit } from './InlineEdit'
+import { BeginInlineEdit } from './inline-edit-context'
 
 const RowStore = createContext<TreePresentationStore | null>(null)
 type PresentationTreeProps = ComponentProps<typeof Tree<PresentationNode>>
@@ -42,6 +44,7 @@ function TreeRow({
   dragHandle,
 }: NodeRendererProps<PresentationNode>): React.JSX.Element | null {
   const store = useContext(RowStore)!
+  const begin = useContext(BeginInlineEdit)
   const nodeId = node.id
   const subscribe = useCallback(
     (listener: () => void) => store.subscribe(nodeId, listener),
@@ -81,9 +84,43 @@ function TreeRow({
       >
         {container ? (node.isOpen ? '▾' : '▸') : '·'}
       </button>
-      <span className="tree-key">{name}</span>
+      {data.key !== null && data.parentId !== null ? (
+        <button
+          className="tree-key tree-edit-cell"
+          data-edit-field="key"
+          disabled={!enabled}
+          aria-label={`编辑属性名 ${name}`}
+          title="点击编辑属性名"
+          onClick={(event) => {
+            event.stopPropagation()
+            node.select()
+            begin(data.id, 'key')
+          }}
+        >
+          {name}
+        </button>
+      ) : (
+        <span className="tree-key">{name}</span>
+      )}
       <span className="tree-type">{data.type}</span>
-      <span className="tree-preview">{data.preview}</span>
+      {container ? (
+        <span className="tree-preview">{data.preview}</span>
+      ) : (
+        <button
+          className="tree-preview tree-edit-cell"
+          data-edit-field="value"
+          disabled={!enabled}
+          aria-label={`编辑值 ${name}`}
+          title="点击编辑值"
+          onClick={(event) => {
+            event.stopPropagation()
+            node.select()
+            begin(data.id, 'value')
+          }}
+        >
+          {data.preview}
+        </button>
+      )}
     </div>
   )
 }
@@ -156,104 +193,113 @@ export function JsonTreeEditor({
   const disabled = !current || !tree?.editable
   const contentWidth = Math.max(size.width, ((tree?.maxDepth ?? 0) + 1) * 16 + 300)
   return (
-    <section className="tree-pane" aria-label="JSON 树编辑器">
-      <div className="tree-header">
-        <strong>JSON 树</strong>
-        <span data-testid="tree-count">
-          {tree
-            ? `${tree.nodes.length.toLocaleString('en-US')} 个节点${current ? '' : '（旧）'}`
-            : '暂无树'}
-        </span>
-        <button
-          className="icon-button"
-          aria-label="全部折叠"
-          title="全部折叠"
-          disabled={!tree}
-          onClick={() => api.current?.closeAll()}
-        >
-          <Icon name="collapse" />
-        </button>
-        <button
-          className="icon-button"
-          aria-label="展开根节点"
-          title="展开根节点"
-          disabled={!tree}
-          onClick={() => tree && api.current?.open(tree.rootId)}
-        >
-          <Icon name="expand" />
-        </button>
-      </div>
-      <p className={`tree-state ${disabled ? 'readonly' : ''}`} data-testid="tree-status">
-        {message ||
-          (!tree
-            ? '等待有效 JSON'
-            : !current
-              ? '树已过期，仅供浏览；请先完成文本校验。'
-              : !tree.editable
-                ? '存在重复属性名，树仅供浏览；请在文本区消除歧义。'
-                : '树可编辑')}
-      </p>
-      <div className="tree-viewport" ref={area}>
-        {tree && (
-          <RowStore.Provider value={store}>
-            <Tree<PresentationNode>
-              key={tree.rootId}
-              ref={api}
-              data={roots}
-              idAccessor="id"
-              childrenAccessor="children"
-              width={contentWidth}
-              height={Math.max(60, size.height - (contentWidth > size.width ? 16 : 0))}
-              rowHeight={28}
-              overscanCount={4}
-              indent={16}
-              openByDefault={false}
-              initialOpenState={initialOpenState}
-              selection={selected?.id ?? tree.rootId}
-              disableDrag={disableDrag}
-              disableDrop={disableDrop}
-              onMove={move}
-              disableEdit
-              disableMultiSelection
-              selectionFollowsFocus
-              onSelect={select}
-              aria-label="JSON 节点树"
-            >
-              {TreeRow}
-            </Tree>
-          </RowStore.Provider>
-        )}
-      </div>
-      {error && (
-        <p className="tree-command-error" role="alert" aria-label="节点操作错误">
-          {error}
+    <InlineEdit
+      tree={tree}
+      current={current}
+      error={error}
+      onCommand={onCommand}
+      readValue={readValue}
+      onLocate={onLocate}
+    >
+      <section className="tree-pane" aria-label="JSON 树编辑器">
+        <div className="tree-header">
+          <strong>JSON 树</strong>
+          <span data-testid="tree-count">
+            {tree
+              ? `${tree.nodes.length.toLocaleString('en-US')} 个节点${current ? '' : '（旧）'}`
+              : '暂无树'}
+          </span>
+          <button
+            className="icon-button"
+            aria-label="全部折叠"
+            title="全部折叠"
+            disabled={!tree}
+            onClick={() => api.current?.closeAll()}
+          >
+            <Icon name="collapse" />
+          </button>
+          <button
+            className="icon-button"
+            aria-label="展开根节点"
+            title="展开根节点"
+            disabled={!tree}
+            onClick={() => tree && api.current?.open(tree.rootId)}
+          >
+            <Icon name="expand" />
+          </button>
+        </div>
+        <p className={`tree-state ${disabled ? 'readonly' : ''}`} data-testid="tree-status">
+          {message ||
+            (!tree
+              ? '等待有效 JSON'
+              : !current
+                ? '树已过期，仅供浏览；请先完成文本校验。'
+                : !tree.editable
+                  ? '存在重复属性名，树仅供浏览；请在文本区消除歧义。'
+                  : '树可编辑')}
         </p>
-      )}
-      {tree && selected && (
-        <>
-          <p className="tree-path" title="JSON Pointer">
-            {(jsonPointer(selected, index) || '(根节点)').slice(0, 200)}
+        <div className="tree-viewport" ref={area}>
+          {tree && (
+            <RowStore.Provider value={store}>
+              <Tree<PresentationNode>
+                key={tree.rootId}
+                ref={api}
+                data={roots}
+                idAccessor="id"
+                childrenAccessor="children"
+                width={contentWidth}
+                height={Math.max(60, size.height - (contentWidth > size.width ? 16 : 0))}
+                rowHeight={28}
+                overscanCount={4}
+                indent={16}
+                openByDefault={false}
+                initialOpenState={initialOpenState}
+                selection={selected?.id ?? tree.rootId}
+                disableDrag={disableDrag}
+                disableDrop={disableDrop}
+                onMove={move}
+                disableEdit
+                disableMultiSelection
+                selectionFollowsFocus
+                onSelect={select}
+                aria-label="JSON 节点树"
+              >
+                {TreeRow}
+              </Tree>
+            </RowStore.Provider>
+          )}
+        </div>
+        {error && (
+          <p className="tree-command-error" role="alert" aria-label="节点操作错误">
+            {error}
           </p>
-          <TreeNodeForm
-            modeEditing
-            key={`${tree.revision}:${selected.id}`}
-            node={selected}
-            parent={selected.parentId ? index.get(selected.parentId) : undefined}
-            rawValue={current ? readValue(selected) : null}
-            disabled={disabled}
-            onCommand={(command) => onCommand(command, tree.revision)}
-            onLocate={() => onLocate(selected, tree.revision)}
-            structuralActions={
-              <StructuralActions
-                tree={tree}
-                node={selected}
-                disabled={disabled}
-                onCommand={(command) => onCommand(command, tree.revision)}
-              />
-            }
-          />
-        </>
-      )}
-    </section>
+        )}
+        {tree && selected && (
+          <>
+            <p className="tree-path" title="JSON Pointer">
+              {(jsonPointer(selected, index) || '(根节点)').slice(0, 200)}
+            </p>
+            <TreeNodeForm
+              modeEditing
+              key={`${tree.revision}:${selected.id}`}
+              node={selected}
+              parent={selected.parentId ? index.get(selected.parentId) : undefined}
+              rawValue={current ? readValue(selected) : null}
+              disabled={disabled}
+              onCommand={(command) => onCommand(command, tree.revision)}
+              onLocate={() => onLocate(selected, tree.revision)}
+              structuralActions={
+                <StructuralActions
+                  tree={tree}
+                  node={selected}
+                  disabled={disabled}
+                  onCommand={(command) => onCommand(command, tree.revision)}
+                />
+              }
+            />
+          </>
+        )}
+      </section>
+    </InlineEdit>
   )
 }

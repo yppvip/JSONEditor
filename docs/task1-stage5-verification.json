@@ -1,0 +1,69 @@
+{
+  "stage": 5,
+  "date": "2026-11-03",
+  "scope": [
+    "inline object key and scalar value editing",
+    "IME-safe commit/cancel and Tab continuation",
+    "pane-owned drafts independent of virtual rows",
+    "complete long-value editing and bounded popovers",
+    "stale revision and rebuilt node identity gates"
+  ],
+  "check": { "passed": true, "testFiles": 23, "unitAndComponentTests": 291 },
+  "build": { "passed": true },
+  "e2e": {
+    "passed": true,
+    "totalScenarios": 42,
+    "newInlineScenarios": 4,
+    "allScenariosVerified": true,
+    "earlierCompleteRunPasses": 42,
+    "latestFullRunPasses": 39,
+    "latestFullRunFailures": 3,
+    "latestFullRunFailedScenarios": [
+      "pane swap visible-line snapshot",
+      "initial source input before deletion history",
+      "initial deeply nested source input"
+    ],
+    "latestFailedScenariosRepeatedPasses": 9,
+    "repeatCountPerFailedScenario": 3,
+    "latestCompleteSingleRun": false,
+    "dragAndWorkerRestartRepeatedChecks": 6
+  },
+  "verified": {
+    "keyTabValueContinuation": true,
+    "nativeSingleStepUndo": true,
+    "forcedStringAndExactNumberLexemes": true,
+    "equivalentAutomaticInputNoOp": true,
+    "escapeCancellationAndBlurCommit": true,
+    "duplicateKeyRetainsDraft": true,
+    "compositionEnterDoesNotCommit": true,
+    "completeDecodedLongValues": true,
+    "multilineCtrlEnter": true,
+    "overLimitCodeEntry": true,
+    "draftSurvivesVirtualRowUnmount": true,
+    "staleRevisionRejectsCommit": true,
+    "workerIdentityResetPreservesModifiedDraft": true,
+    "commandRejectionAndTimeoutKeepDraft": true,
+    "minimumWindowPopoverBounds": true
+  },
+  "developmentSmoke": "task1-stage5-development-smoke.json",
+  "treePerformance": {
+    "report": "task1-stage5-tree-performance.json",
+    "passed": true,
+    "maxNodes": 100000,
+    "mountedRowsAtMaxNodes": 14,
+    "scalarEditMedianMsAtMaxNodes": 150.4941,
+    "sortMsAtMaxNodes": 370.6287,
+    "undoMsAtMaxNodes": 931.8085,
+    "limitDegradationPassed": true
+  },
+  "screenshots": ["task1-stage5-inline-long.png", "task1-stage5-inline-error.png"],
+  "limitations": [
+    "Existing source-input and scroll-snapshot scenarios showed intermittent failures; all three passed three consecutive traced repeats, but the cause is not fully established",
+    "Existing bottom form remains until stage 6 migrates structural actions to context menus",
+    "Drafts are in-memory editing sessions and do not survive application exit",
+    "Inline source reading retains the existing 65536-character form limit",
+    "IME verified with composition events; no full manual OS IME or 125/150 percent display scaling acceptance",
+    "Performance samples cover synthetic flat arrays on this machine, not deep/mixed structures or long-running memory pressure",
+    "No installer build or release"
+  ]
+}

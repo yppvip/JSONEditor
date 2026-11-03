@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>树行编辑 · 状态预览</title>
+    <link rel="stylesheet" href="../../src/renderer/app/styles.css" />
+    <style>
+      body {
+        padding: 24px;
+      }
+      h1 {
+        font-size: 20px;
+      }
+      .states {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        gap: 20px;
+        max-width: 1000px;
+      }
+      .inline-edit {
+        position: static;
+        margin-top: 8px;
+        min-height: 34px;
+        box-shadow: none;
+      }
+      .hover input {
+        background: var(--selection);
+      }
+      .focus input {
+        outline: 2px solid var(--accent);
+        outline-offset: -2px;
+      }
+      .active input {
+        background: var(--border);
+      }
+      .disabled input {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+      label {
+        font-weight: 600;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>树行编辑 · 八种状态</h1>
+    <p>仅用于外观核对；实际提交、输入法和撤销请在应用内检查。</p>
+    <div class="states">
+      <section>
+        <label for="default">默认</label>
+        <div class="inline-edit"><input id="default" value="示例内容" /></div>
+      </section>
+      <section>
+        <label for="hover">悬浮</label>
+        <div class="inline-edit hover"><input id="hover" value="示例内容" /></div>
+      </section>
+      <section>
+        <label for="focus">键盘焦点</label>
+        <div class="inline-edit focus"><input id="focus" value="示例内容" /></div>
+      </section>
+      <section>
+        <label for="active">按下</label>
+        <div class="inline-edit active"><input id="active" value="示例内容" /></div>
+      </section>
+      <section>
+        <label for="disabled">不可编辑</label>
+        <div class="inline-edit disabled"><input id="disabled" value="树已过期" disabled /></div>
+      </section>
+      <section>
+        <label for="loading">提交中</label>
+        <div class="inline-edit" aria-busy="true">
+          <input id="loading" value="示例内容" readonly />
+        </div>
+      </section>
+      <section>
+        <label for="error">错误保留草稿</label>
+        <div class="inline-edit has-error">
+          <input id="error" value="重复名称" aria-invalid="true" />
+          <p role="alert">同级属性名已存在，请修改名称。</p>
+        </div>
+      </section>
+      <section>
+        <label for="success">成功后回到显示态</label>
+        <div>
+          <button class="tree-key tree-edit-cell" id="success">name</button> :
+          <button class="tree-preview tree-edit-cell">"示例内容"</button>
+        </div>
+      </section>
+    </div>
+  </body>
+</html>
