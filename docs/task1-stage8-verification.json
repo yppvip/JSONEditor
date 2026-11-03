@@ -1,0 +1,83 @@
+{
+  "stage": 8,
+  "date": "2026-11-03",
+  "status": "automated-and-visual-acceptance-passed-manual-items-open",
+  "allManualAcceptanceComplete": false,
+  "changes": [
+    "Four Electron acceptance scenarios for device scale, boundary geometry, complete long-field values, contrast and keyboard focus",
+    "Optional device scale launch flag for tests only",
+    "Scoped CSS override for Arborist max-content minimum to remove redundant inner horizontal scrolling while preserving depth scrolling"
+  ],
+  "check": { "passed": true, "testFiles": 25, "unitAndComponentTests": 302 },
+  "build": { "passed": true },
+  "e2e": {
+    "passed": true,
+    "totalScenarios": 55,
+    "completeSingleRun": true,
+    "skipped": 0,
+    "flaky": 0,
+    "additionalAcceptanceScenarios": 4,
+    "finalAcceptanceRerun": { "total": 4, "passed": 4 },
+    "note": "Final acceptance rerun adds shell offset checks and two animation-frame waits before swapped-state screenshots; product CSS is identical to full 55-scenario run"
+  },
+  "displayScaleAcceptance": {
+    "method": "Chromium --force-device-scale-factor with actual devicePixelRatio assertions",
+    "factors": [1, 1.25, 1.5],
+    "contentSizesCssPx": [
+      [1100, 760],
+      [640, 480]
+    ],
+    "passed": true,
+    "changesWindowsDisplaySettings": false,
+    "osScalingSwitchAndCrossMonitorDpiTested": false
+  },
+  "accessibility": {
+    "colorTokenPairs": 9,
+    "minimumContrastRatio": 5.62983087821754,
+    "requiredContrastRatio": 4.5,
+    "keyboardFocusOutlinePx": 2,
+    "contrastReport": "task1-stage8-contrast.json",
+    "fullScreenReaderAudit": false,
+    "fullMonacoContrastAudit": false
+  },
+  "visualReview": {
+    "screenshots": 15,
+    "index": "task1-stage8-screenshots/README.md",
+    "representativeImagesInspected": true,
+    "redundantInnerTreeScrollbarFixed": true,
+    "finesseStaticP0": 0,
+    "finesseStaticReport": "task1-stage8-ui-audit.json",
+    "p2Disposition": "Entry HTML missing-stamp hint is inapplicable: imported standalone styles.css has the build stamp"
+  },
+  "developmentSmoke": "task1-stage8-development-smoke.json",
+  "treePerformance": {
+    "report": "task1-stage8-tree-performance.json",
+    "passed": true,
+    "maxNodes": 100000,
+    "mountedRowsAtMaxNodes": 25,
+    "scalarEditMedianMsAtMaxNodes": 157.9785,
+    "sortMsAtMaxNodes": 535.7145,
+    "undoMsAtMaxNodes": 1006.85,
+    "limitDegradationPassed": true,
+    "note": "Single synthetic flat-array run; no cross-machine improvement, long-run memory or sustained FPS claim"
+  },
+  "nativeInteraction": {
+    "chineseUnicodeEntryObserved": true,
+    "realPinyinCandidateWindowObserved": true,
+    "enterDuringCompositionKeepsInlineEditorAndOriginalJson": true,
+    "fullCandidateSelectionFlowCompleted": false,
+    "stoppedByUserPhysicalEscape": true,
+    "furtherComputerUseStopped": true
+  },
+  "testEnvironmentNotes": [
+    "A first runner waited while cleaning an output directory containing the open native acceptance profile; stopped that runner and used independent output directories",
+    "Initial long-key locator incorrectly expected untruncated display text; corrected the locator and asserted the complete key in its editor"
+  ],
+  "remainingAcceptance": [
+    "Complete manual IME candidate selection, confirmation and cancellation across key, value, multiline and Monaco",
+    "Windows-level 125/150 percent scaling changes and cross-monitor DPI migration",
+    "Dedicated screen-reader workflow, long-running memory pressure and sustained frame-rate measurement on mid-range hardware"
+  ],
+  "installerBuilt": false,
+  "published": false
+}

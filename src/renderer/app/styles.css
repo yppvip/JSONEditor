@@ -415,6 +415,11 @@ kbd {
   overflow: hidden;
   cursor: pointer;
 }
+/* Arborist's inline max-content minimum defeats cell ellipsis. Depth is already
+ * included in the explicit tree width; keep horizontal scrolling on the viewport. */
+.tree-viewport [role='treeitem'] {
+  min-width: 0 !important;
+}
 .json-tree-row.selected {
   background: var(--selection);
 }

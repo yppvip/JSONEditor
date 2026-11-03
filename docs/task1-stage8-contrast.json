@@ -1,0 +1,47 @@
+[
+  {
+    "foreground": "text",
+    "background": "surface",
+    "ratio": 15.186764767873777
+  },
+  {
+    "foreground": "muted",
+    "background": "surface",
+    "ratio": 5.989822950717018
+  },
+  {
+    "foreground": "muted",
+    "background": "background",
+    "ratio": 5.62983087821754
+  },
+  {
+    "foreground": "on-accent",
+    "background": "accent",
+    "ratio": 5.787601573391731
+  },
+  {
+    "foreground": "success",
+    "background": "surface",
+    "ratio": 5.793762205300266
+  },
+  {
+    "foreground": "danger",
+    "background": "danger-bg",
+    "ratio": 5.88331073498313
+  },
+  {
+    "foreground": "warning",
+    "background": "warning-bg",
+    "ratio": 5.635334051397931
+  },
+  {
+    "foreground": "accent",
+    "background": "surface",
+    "ratio": 5.787601573391731
+  },
+  {
+    "foreground": "text",
+    "background": "selection",
+    "ratio": 13.707238755726967
+  }
+]
