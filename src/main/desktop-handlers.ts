@@ -1,3 +1,5 @@
+import { NodeModeStore } from './node-mode-store'
+import { validModeSnapshot } from '../core/tree-model/edit-modes'
 import { app, BrowserWindow, clipboard, dialog, ipcMain, Menu } from 'electron'
 import type { IpcMainInvokeEvent, MenuItemConstructorOptions } from 'electron'
 import { randomUUID } from 'node:crypto'
@@ -22,7 +24,9 @@ export function validSaveRequest(value: unknown): value is SaveFileRequest {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return false
   const object = value as Record<string, unknown>
   return (
-    Object.keys(object).sort().join(',') === 'fileId,saveAs,text' &&
+    (Object.keys(object).sort().join(',') === 'fileId,saveAs,text' ||
+      (Object.keys(object).sort().join(',') === 'editModes,fileId,saveAs,text' &&
+        validModeSnapshot(object.editModes))) &&
     (object.fileId === null || isId(object.fileId)) &&
     typeof object.text === 'string' &&
     typeof object.saveAs === 'boolean'
@@ -31,6 +35,7 @@ export function validSaveRequest(value: unknown): value is SaveFileRequest {
 export class DesktopHandlers {
   readonly files = new FileService(
     new RecentFiles(() => join(app.getPath('userData'), 'recent-files.json')),
+    new NodeModeStore(() => join(app.getPath('userData'), 'node-edit-modes.json')),
   )
   private readonly busy = new Set<number>()
   private readonly closing = new Map<number, string>()
@@ -90,7 +95,9 @@ export class DesktopHandlers {
   private async remember<T extends FileMetadata>(value: T): Promise<DesktopResult<T>> {
     try {
       await this.files.recent.add(value.path)
-      return { ok: true, value }
+      return value.modesSaved === false
+        ? { ok: true, value, warning: '文本已保存，但输入模式记录写入失败；请再次保存重试。' }
+        : { ok: true, value }
     } catch {
       return { ok: true, value, warning: '文件操作成功，但最近文件记录写入失败。' }
     }
@@ -151,7 +158,13 @@ export class DesktopHandlers {
           selected = result.filePath
         }
         return this.remember(
-          await this.files.save(window.webContents.id, request.fileId, request.text, selected),
+          await this.files.save(
+            window.webContents.id,
+            request.fileId,
+            request.text,
+            selected,
+            request.editModes,
+          ),
         )
       },
       true,

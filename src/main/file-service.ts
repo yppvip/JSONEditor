@@ -1,6 +1,8 @@
 import { createHash, randomUUID } from 'node:crypto'
 import { open, lstat, realpath, rename, unlink, mkdir, readFile } from 'node:fs/promises'
 import { basename, dirname, isAbsolute, join } from 'node:path'
+import type { NodeModeStore } from './node-mode-store'
+import type { ModeSnapshot } from '../core/tree-model/edit-modes'
 import { MAX_TEXT_LENGTH } from '../core/json/limits'
 import type { FileMetadata, OpenedFile, RecentFile } from '../shared/desktop-api'
 
@@ -163,7 +165,10 @@ interface Grant {
 }
 export class FileService {
   private readonly grants = new Map<string, Grant>()
-  constructor(readonly recent: RecentFiles) {}
+  constructor(
+    readonly recent: RecentFiles,
+    private readonly modes?: NodeModeStore,
+  ) {}
   release(owner: number, id: string): void {
     if (this.grants.get(id)?.owner === owner) this.grants.delete(id)
   }
@@ -195,13 +200,20 @@ export class FileService {
       eol: decoded.eol,
     }
     this.grants.set(metadata.fileId, { owner, metadata, digest: hash(bytes) })
-    return { ...metadata, text: decoded.text }
+    const stored = await this.modes?.load(path, decoded.text)
+    return {
+      ...metadata,
+      text: decoded.text,
+      ...(stored?.modes ? { editModes: stored.modes } : {}),
+      ...(stored?.warning ? { modeWarning: stored.warning } : {}),
+    }
   }
   async save(
     owner: number,
     fileId: string | null,
     text: string,
     selectedPath?: string,
+    editModes?: ModeSnapshot,
   ): Promise<FileMetadata> {
     const existing = fileId ? this.grant(owner, fileId) : null
     if (!existing && [...this.grants.values()].filter((grant) => grant.owner === owner).length >= 8)
@@ -252,6 +264,13 @@ export class FileService {
       eol: text.includes('\r\n') ? 'CRLF' : 'LF',
     }
     this.grants.set(metadata.fileId, { owner, metadata, digest: hash(bytes) })
+    if (this.modes && editModes) {
+      try {
+        await this.modes.save(path, text, editModes)
+      } catch {
+        return { ...metadata, modesSaved: false }
+      }
+    }
     return metadata
   }
 }

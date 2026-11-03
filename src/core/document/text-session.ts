@@ -5,6 +5,8 @@ import type { TreeCommand } from '../commands/tree-commands'
 import { applySourceEdits } from './source-edits'
 import { MAX_CHANGE_RECORDS } from './change-map'
 import type { ChangeBatch, SourceChange } from './change-map'
+import { snapshotModes } from '../tree-model/edit-modes'
+import type { ModeSnapshot } from '../tree-model/edit-modes'
 import { applyScalarTreePatch } from '../tree-model/scalar-patch'
 import type {
   JsonWorkerRequest,
@@ -16,7 +18,13 @@ export interface DocumentBuffer {
   getText: () => string
   getLength: () => number
   getHistoryVersion?: () => number
-  applyEdits: (edits: readonly TextEdit[], origin?: 'format' | 'tree') => boolean | void
+  applyEdits: (
+    edits: readonly TextEdit[],
+    origin?: 'format' | 'tree',
+    nextModes?: ModeSnapshot,
+  ) => boolean | void
+  restoreModes?: () => ModeSnapshot | undefined
+  rememberModes?: (modes: ModeSnapshot) => void
   setDiagnostics: (diagnostics: readonly ParseDiagnostic[]) => void
 }
 
@@ -66,6 +74,7 @@ export class TextDocumentSession {
   private composing = false
   private journal: ChangeBatch[] = []
   private applying: 'format' | 'tree' | null = null
+  private readonly modeWaiters = new Set<() => void>()
   private clipboard: { resolve: (text: string) => void; reject: (error: Error) => void } | null =
     null
   private cancelClipboard(message: string): void {
@@ -229,6 +238,9 @@ export class TextDocumentSession {
       ...(this.buffer.getHistoryVersion ? { historyVersion: this.buffer.getHistoryVersion() } : {}),
       ...(this.journal.length ? { changeJournal: [...this.journal] } : {}),
       ...(command ? { command } : {}),
+      ...(this.buffer.restoreModes?.() !== undefined
+        ? { restoreModes: this.buffer.restoreModes!()! }
+        : {}),
     }
     this.inFlight = request
     this.publish({ state: 'validating', message: '', treeError: '' })
@@ -283,7 +295,7 @@ export class TextDocumentSession {
       if (
         (response.action === 'format' || response.action === 'tree') &&
         response.analysis.valid &&
-        response.edits.length &&
+        (response.edits.length || response.nextModes !== undefined) &&
         !response.commandError
       ) {
         this.queued = null
@@ -291,7 +303,11 @@ export class TextDocumentSession {
         try {
           const expected = applySourceEdits(current.text, response.edits)
           this.applying = response.action
-          const applied = this.buffer.applyEdits(response.edits, response.action)
+          const applied = this.buffer.applyEdits(
+            response.edits,
+            response.action,
+            response.nextModes,
+          )
           if (
             applied === false ||
             this.snapshot.revision !== current.revision + 1 ||
@@ -325,6 +341,7 @@ export class TextDocumentSession {
           return
         }
       }
+      if (response.modeSnapshot) this.buffer.rememberModes?.(response.modeSnapshot)
       const clipboardResult =
         response.action === 'copy-format' || response.action === 'copy-compact'
       if (clipboardResult) {
@@ -362,6 +379,34 @@ export class TextDocumentSession {
     const action = this.queued
     this.queued = null
     if (action) this.request(action)
+  }
+
+  async exportModes(): Promise<ModeSnapshot | undefined> {
+    if (this.disposed) return undefined
+    const read = (): ModeSnapshot | undefined =>
+      this.snapshot.tree && this.snapshot.tree.revision === this.snapshot.revision
+        ? snapshotModes(this.snapshot.tree)
+        : undefined
+    if (this.snapshot.state === 'valid') return read()
+    if (this.snapshot.state === 'invalid' || this.snapshot.state === 'failed') return undefined
+    return new Promise((resolve) => {
+      let stop = (): void => {}
+      const finish = (): void => {
+        stop()
+        this.modeWaiters.delete(finish)
+        resolve(!this.disposed && this.snapshot.state === 'valid' ? read() : undefined)
+      }
+      stop = this.subscribe(() => {
+        if (
+          this.snapshot.state === 'valid' ||
+          this.snapshot.state === 'invalid' ||
+          this.snapshot.state === 'failed'
+        )
+          finish()
+      })
+      this.modeWaiters.add(finish)
+      this.request('validate')
+    })
   }
 
   restart(): void {
@@ -421,6 +466,7 @@ export class TextDocumentSession {
   dispose(): void {
     this.cancelClipboard('编辑器已关闭，复制已取消。')
     this.disposed = true
+    this.modeWaiters.forEach((finish) => finish())
     this.clearDebounce()
     this.clearTimeout()
     this.transport?.dispose()

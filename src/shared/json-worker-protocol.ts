@@ -4,6 +4,7 @@ import type { TreeCommand } from '../core/commands/tree-commands'
 import type { JsonTreeProjection } from '../core/tree-model/model'
 import type { ChangeBatch } from '../core/document/change-map'
 import type { ScalarTreePatch } from '../core/tree-model/scalar-patch'
+import type { ModeSnapshot } from '../core/tree-model/edit-modes'
 
 export interface JsonWorkerRequest extends DocumentVersion {
   requestId: number
@@ -12,6 +13,7 @@ export interface JsonWorkerRequest extends DocumentVersion {
   command?: TreeCommand
   historyVersion?: number
   changeJournal?: readonly ChangeBatch[]
+  restoreModes?: ModeSnapshot
 }
 
 export interface JsonWorkerResult extends DocumentVersion {
@@ -27,6 +29,8 @@ export interface JsonWorkerResult extends DocumentVersion {
   commandError?: string
   output?: string
   outputError?: string
+  nextModes?: ModeSnapshot
+  modeSnapshot?: ModeSnapshot
 }
 
 export type JsonWorkerResponse =

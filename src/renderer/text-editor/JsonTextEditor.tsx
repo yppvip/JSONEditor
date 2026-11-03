@@ -1,3 +1,4 @@
+import type { ModeSnapshot } from '../../core/tree-model/edit-modes'
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { initialDocumentStatus } from '../../core/document/text-session'
 import { createEditor } from './create-editor'
@@ -37,6 +38,7 @@ export function JsonTextEditor({
   const [documentKey, setDocumentKey] = useState(0)
   const pendingLoad = useRef<{
     text: string
+    modes?: ModeSnapshot
     resolve: () => void
     reject: (error: Error) => void
   } | null>(null)
@@ -54,6 +56,7 @@ export function JsonTextEditor({
           files.observe(next.historyVersion)
         },
         load?.text,
+        load?.modes,
       )
       view.current = editor
       files.connect({
@@ -62,10 +65,11 @@ export function JsonTextEditor({
         redo: editor.redo,
         snapshot: editor.getSnapshot,
         historyVersion: editor.getHistoryVersion,
-        load: (text) =>
+        exportModes: editor.exportModes,
+        load: (text, modes) =>
           new Promise<void>((resolve, reject) => {
             editor.setReadOnly(true)
-            pendingLoad.current = { text, resolve, reject }
+            pendingLoad.current = { text, ...(modes ? { modes } : {}), resolve, reject }
             setDocumentKey((key) => key + 1)
           }),
         paste: editor.replaceText,

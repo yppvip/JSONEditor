@@ -1,0 +1,60 @@
+{
+  "stage": 4,
+  "date": "2026-11-03",
+  "scope": [
+    "automatic and locked-string input policies",
+    "metadata-only transactions in native Monaco undo history",
+    "mode inheritance and historical snapshots",
+    "main-process atomic local metadata persistence",
+    "save/reopen/Save As and external-change invalidation"
+  ],
+  "check": {
+    "passed": true,
+    "testFiles": 22,
+    "unitAndComponentTests": 286
+  },
+  "build": { "passed": true },
+  "e2e": {
+    "passed": true,
+    "totalScenarios": 38,
+    "newModeScenarios": 3,
+    "completeSingleRun": true,
+    "launchEnvironment": "Normal desktop permissions; restricted-process attempt could not launch Electron because of Windows AppContainer ACL",
+    "applicationSandboxEnabled": true
+  },
+  "verified": {
+    "exactNumberLexemes": true,
+    "forcedStringsStayStrings": true,
+    "metadataOnlyNativeUndoRedo": true,
+    "mixedTextAndModeHistory": true,
+    "twelveModeHistoryTransactions": true,
+    "modeOnlySavePreservesJsonBytes": true,
+    "renameMoveCopySortDeleteInheritance": true,
+    "saveAsCancellationAndIndependentRecords": true,
+    "restartRestoresModes": true,
+    "whitespaceOnlyChangesRestoreModes": true,
+    "externalContentChangesInvalidateWithWarning": true,
+    "metadataWriteFailurePreservesJsonAndDirtyState": true,
+    "metadataWriteRetry": true,
+    "strictExistingIpcBoundary": true
+  },
+  "developmentSmoke": "task1-stage4-development-smoke.json",
+  "treePerformance": {
+    "report": "task1-stage4-tree-performance.json",
+    "passed": true,
+    "maxNodes": 100000,
+    "mountedRowsAtMaxNodes": 14,
+    "scalarEditMedianMsAtMaxNodes": 151.0812,
+    "sortMsAtMaxNodes": 347.6596,
+    "undoMsAtMaxNodes": 924.6946,
+    "limitDegradationPassed": true
+  },
+  "limitations": [
+    "Inline editing and context menus remain scheduled for stages 5 and 6",
+    "Input modes are local app metadata and do not travel with a copied JSON file",
+    "Monaco internal undo bridge is pinned to 0.57.0 and requires mixed-history regression on upgrades",
+    "Mode snapshots are retained for the editor lifetime; no long-running history memory pressure test",
+    "Performance samples cover synthetic flat arrays on this machine, not deep/mixed structures",
+    "No installer build or release"
+  ]
+}

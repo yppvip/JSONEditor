@@ -39,6 +39,22 @@ beforeEach(() => {
 })
 it('validates exact save schema and opaque IDs without accepting renderer paths', () => {
   expect(validSaveRequest({ fileId: null, text: '{}', saveAs: true })).toBe(true)
+  expect(
+    validSaveRequest({
+      fileId: null,
+      text: '{}',
+      saveAs: true,
+      editModes: [{ pointer: '/a', mode: 'auto' }],
+    }),
+  ).toBe(true)
+  expect(
+    validSaveRequest({
+      fileId: null,
+      text: '{}',
+      saveAs: true,
+      editModes: [{ pointer: '/a', mode: 'auto', path: 'D:/arbitrary' }],
+    }),
+  ).toBe(false)
   for (const invalid of [
     { fileId: null, text: '{}', saveAs: true, path: 'C:\\x' },
     { fileId: 'C:\\x', text: '{}', saveAs: false },

@@ -1,4 +1,6 @@
 import type { JsonTreeProjection } from './model'
+import { snapshotModes } from './edit-modes'
+import type { ModeSnapshot } from './edit-modes'
 
 export const IDENTITY_HISTORY_LIMITS = {
   entries: 8,
@@ -10,6 +12,7 @@ interface Checkpoint {
   version: number
   source: string
   ids: string[]
+  modes: ModeSnapshot
 }
 
 /** Identity metadata only: Monaco alone owns the actual undo/redo text history. */
@@ -22,6 +25,17 @@ export class IdentityHistory {
       (entry) =>
         entry.documentId === documentId && entry.version === version && entry.source === source,
     )?.ids
+  }
+
+  findModes(
+    documentId: string,
+    version: number | undefined,
+    source: string,
+  ): ModeSnapshot | undefined {
+    return this.entries.find(
+      (entry) =>
+        entry.documentId === documentId && entry.version === version && entry.source === source,
+    )?.modes
   }
 
   remember(tree: JsonTreeProjection, version: number | undefined, source: string): void {
@@ -38,6 +52,7 @@ export class IdentityHistory {
         version,
         source,
         ids: tree.nodes.map((node) => node.id),
+        modes: snapshotModes(tree),
       })
     while (
       this.entries.length > IDENTITY_HISTORY_LIMITS.entries ||

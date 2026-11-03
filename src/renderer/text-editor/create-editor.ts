@@ -7,6 +7,10 @@ import 'monaco-editor/editor/contrib/hover/browser/hoverContribution'
 import 'monaco-editor/editor/contrib/wordOperations/browser/wordOperations'
 import 'monaco-editor/editor/contrib/tokenization/browser/tokenization'
 import 'monaco-editor/editor/contrib/bracketMatching/browser/bracketMatching'
+// These services must be registered before the first standalone editor is created.
+import 'monaco-editor/editor/contrib/codelens/browser/codeLensCache'
+import 'monaco-editor/editor/common/services/treeViewsDndService'
+import 'monaco-editor/editor/contrib/suggest/browser/suggestMemory'
 import { jsonDefaults } from 'monaco-editor/languages/features/json/register'
 import EditorWorker from 'monaco-editor/editor/editor.worker?worker'
 import { TextDocumentSession } from '../../core/document/text-session'
@@ -18,6 +22,10 @@ import { MAX_FORM_VALUE_LENGTH } from '../../core/tree-model/model'
 import type { JsonTreeNode } from '../../core/tree-model/model'
 import type { TreeCommand } from '../../core/commands/tree-commands'
 import type { DocumentSnapshot } from './desktop-session'
+import type { ModeSnapshot } from '../../core/tree-model/edit-modes'
+import { ModeTimeline } from './mode-timeline'
+import { StandaloneServices } from 'monaco-editor/editor/standalone/browser/standaloneServices'
+import { IUndoRedoService } from 'monaco-editor/platform/undoRedo/common/undoRedo'
 
 Object.assign(globalThis, { MonacoEnvironment: { getWorker: () => new EditorWorker() } })
 jsonDefaults.setDiagnosticsOptions({ validate: false, enableSchemaRequest: false })
@@ -57,6 +65,7 @@ export interface EditorView {
   getHistoryVersion: () => number
   replaceText: (text: string) => boolean
   transformClipboard: (mode: 'format' | 'compact') => Promise<string>
+  exportModes: () => Promise<ModeSnapshot | undefined>
   setReadOnly: (locked: boolean) => void
 }
 
@@ -88,6 +97,7 @@ export function createEditor(
   container: HTMLElement,
   onStatus: (status: EditorStatus) => void,
   text = initialText,
+  initialModes?: ModeSnapshot,
 ): EditorView {
   const documentId = `untitled-${++sequence}`
   const model = monaco.editor.createModel(
@@ -96,6 +106,11 @@ export function createEditor(
     monaco.Uri.parse(`inmemory://jsoneditor/${documentId}.json`),
   )
   model.updateOptions({ insertSpaces: true, tabSize: 2 })
+  model.setEOL(
+    text.includes('\r\n')
+      ? monaco.editor.EndOfLineSequence.CRLF
+      : monaco.editor.EndOfLineSequence.LF,
+  )
   const editor = monaco.editor.create(container, {
     model,
     editContext: false,
@@ -119,15 +134,44 @@ export function createEditor(
     folding: false,
     stickyScroll: { enabled: false },
   })
+  const timeline = new ModeTimeline()
+  const historyVersion = (): number => timeline.version(model.getAlternativeVersionId())
+  if (initialModes) timeline.remember(model.getAlternativeVersionId(), initialModes)
+  const undoService = StandaloneServices.get(IUndoRedoService)
   let locked = false
   const session = new TextDocumentSession(
     documentId,
     {
       getText: () => model.getValue(),
       getLength: () => model.getValueLength(),
-      getHistoryVersion: () => model.getAlternativeVersionId(),
-      applyEdits: (edits, origin = 'format') => {
+      getHistoryVersion: historyVersion,
+      restoreModes: () => timeline.snapshot(model.getAlternativeVersionId()),
+      rememberModes: (modes) => timeline.remember(model.getAlternativeVersionId(), modes),
+      applyEdits: (edits, origin = 'format', nextModes) => {
         if (locked) return false
+        if (!edits.length && nextModes) {
+          model.pushStackElement()
+          const transaction = timeline.transaction(model.getAlternativeVersionId())
+          timeline.remember(model.getAlternativeVersionId(), nextModes)
+          undoService.pushElement({
+            type: 0,
+            resource: model.uri,
+            label: '切换输入模式',
+            code: 'jsoneditor.edit-mode',
+            undo: () => {
+              transaction.undo()
+              session.changed([], 'undo')
+              session.request('validate')
+            },
+            redo: () => {
+              transaction.redo()
+              session.changed([], 'redo')
+              session.request('validate')
+            },
+          })
+          session.changed([])
+          return true
+        }
         editor.pushUndoStop()
         const applied = editor.executeEdits(
           `json-${origin}`,
@@ -141,6 +185,7 @@ export function createEditor(
           }),
         )
         editor.pushUndoStop()
+        if (applied && nextModes) timeline.remember(model.getAlternativeVersionId(), nextModes)
         return applied
       },
       setDiagnostics: (diagnostics) => {
@@ -174,7 +219,7 @@ export function createEditor(
     const status = session.getSnapshot()
     onStatus({
       ...status,
-      historyVersion: model.getAlternativeVersionId(),
+      historyVersion: historyVersion(),
       problems: status.diagnostics.map((diagnostic) => {
         const position = model.getPositionAt(diagnostic.offset)
         return { ...diagnostic, line: position.lineNumber, column: position.column }
@@ -225,15 +270,16 @@ export function createEditor(
     getSnapshot: () => ({
       text: model.getValue(),
       revision: session.getSnapshot().revision,
-      historyVersion: model.getAlternativeVersionId(),
+      historyVersion: historyVersion(),
       composing: session.getSnapshot().composing,
     }),
-    getHistoryVersion: () => model.getAlternativeVersionId(),
+    getHistoryVersion: historyVersion,
     setReadOnly: (value) => {
       locked = value
       editor.updateOptions({ readOnly: value })
     },
     transformClipboard: (mode) => session.transformClipboard(mode),
+    exportModes: () => session.exportModes(),
     replaceText: (value) => {
       if (locked || session.getSnapshot().composing) return false
       editor.pushUndoStop()
@@ -284,6 +330,7 @@ export function createEditor(
       session.dispose()
       monaco.editor.setModelMarkers(model, 'json-core', [])
       editor.dispose()
+      undoService.removeElements(model.uri)
       model.dispose()
     },
   }

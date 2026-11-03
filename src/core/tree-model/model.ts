@@ -1,11 +1,13 @@
 import { visit } from 'jsonc-parser'
 import type { DocumentVersion } from '../document/contracts'
+import type { EditMode } from './edit-modes'
 
 export type JsonNodeType = 'object' | 'array' | 'string' | 'number' | 'boolean' | 'null'
 export const MAX_TREE_NODES = 100_000
 export const MAX_FORM_VALUE_LENGTH = 65_536
 
 export interface JsonTreeNode {
+  editMode?: EditMode
   id: string
   parentId: string | null
   key: string | null

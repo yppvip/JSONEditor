@@ -235,6 +235,7 @@ export function JsonTreeEditor({
             {(jsonPointer(selected, index) || '(根节点)').slice(0, 200)}
           </p>
           <TreeNodeForm
+            modeEditing
             key={`${tree.revision}:${selected.id}`}
             node={selected}
             parent={selected.parentId ? index.get(selected.parentId) : undefined}

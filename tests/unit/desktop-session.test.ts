@@ -96,6 +96,23 @@ it('keeps dirty state and the old binding after save cancellation or failure', a
   expect(h.session.getSnapshot().error).toBe(true)
   expect(h.session.getSnapshot().file).toBeNull()
 })
+
+it('keeps metadata-only changes dirty after a mode-record failure and clears them only after a successful retry', async () => {
+  const h = harness()
+  h.change('{}', 2)
+  vi.mocked(h.api.saveFile).mockResolvedValueOnce({
+    ok: true,
+    value: { ...file, modesSaved: false },
+    warning: '输入模式记录写入失败',
+  })
+  await h.session.dispatch('save')
+  expect(h.session.getSnapshot().file?.fileId).toBe(file.fileId)
+  expect(h.session.getSnapshot().dirty).toBe(true)
+  expect(h.session.getSnapshot().message).toContain('模式')
+  vi.mocked(h.api.saveFile).mockResolvedValueOnce({ ok: true, value: file })
+  await h.session.dispatch('save')
+  expect(h.session.getSnapshot().dirty).toBe(false)
+})
 it('cancels new/open on unsaved cancellation, then permits explicit discard', async () => {
   const h = harness()
   h.change('[1]')

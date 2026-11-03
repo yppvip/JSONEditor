@@ -1,3 +1,4 @@
+import type { ModeSnapshot } from '../../core/tree-model/edit-modes'
 import type {
   DesktopApi,
   DesktopAction,
@@ -20,7 +21,8 @@ export interface DesktopDocumentPort {
   redo?: () => void
   snapshot: () => DocumentSnapshot
   historyVersion: () => number
-  load: (text: string) => Promise<void>
+  load: (text: string, modes?: ModeSnapshot) => Promise<void>
+  exportModes?: () => Promise<ModeSnapshot | undefined>
   paste: (text: string) => boolean
   transform: (mode: 'format' | 'compact') => Promise<string>
 }
@@ -131,15 +133,20 @@ export class DesktopDocumentSession {
   private async saveInternal(saveAs: boolean): Promise<boolean> {
     const snapshot = this.snapshot(),
       generation = this.generation
+    const marker = this.marker()
+    const editModes = await this.port.exportModes?.()
+    if (this.disposed || marker !== this.marker())
+      throw new Error('准备保存期间文档已变化，请重试。')
     const result = await this.api.saveFile({
       fileId: this.status.file?.fileId ?? null,
       text: snapshot.text,
       saveAs,
+      ...(editModes ? { editModes } : {}),
     })
     if (this.disposed || generation !== this.generation) return false
     if (!result.ok && result.code === 'cancelled') return false
     const file = unwrap(result)
-    this.baseline = snapshot.historyVersion
+    if (file.modesSaved !== false) this.baseline = snapshot.historyVersion
     const dirty = this.port.historyVersion() !== this.baseline
     this.publish({
       file,
@@ -164,13 +171,17 @@ export class DesktopDocumentSession {
     if (result === 'cancel') return false
     return result === 'discard' ? true : this.saveInternal(false)
   }
-  private async install(text: string, file: FileMetadata | null): Promise<void> {
+  private async install(
+    text: string,
+    file: FileMetadata | null,
+    modes?: ModeSnapshot,
+  ): Promise<void> {
     const previous = this.status.file
     this.publish({ loading: true })
     this.port.lock(true)
     ++this.generation
     try {
-      await this.port.load(text)
+      await this.port.load(text, modes)
     } catch (error) {
       this.port.lock(false)
       throw error
@@ -238,14 +249,15 @@ export class DesktopDocumentSession {
         if (!this.disposed) throw new Error('打开期间文档已变化，未覆盖当前文本；请重试。')
         return
       }
-      const { text, ...metadata } = opened
+      const { text, editModes, modeWarning, ...metadata } = opened
       try {
-        await this.install(text, metadata)
+        await this.install(text, metadata, editModes)
       } catch (error) {
         await this.api.releaseFile(opened.fileId).catch(() => {})
         throw error
       }
-      if (result.ok && result.warning) this.publish({ message: result.warning })
+      if (modeWarning) this.publish({ message: modeWarning })
+      else if (result.ok && result.warning) this.publish({ message: result.warning })
       void this.refreshRecent()
     })
   }

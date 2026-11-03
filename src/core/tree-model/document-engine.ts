@@ -1,6 +1,7 @@
 import { analyzeJson, formatJson } from '../json/engine'
 import { applySourceEdits, compileTreeCommand } from '../commands/tree-commands'
-import { buildTree } from './model'
+import { buildTree, indexTree, shareTreeTopology } from './model'
+import { inheritModes, modeOf, restoreModes, snapshotModes } from './edit-modes'
 import type { JsonTreeProjection, TreeIdentityHint } from './model'
 import type { JsonWorkerRequest, JsonWorkerResult } from '../../shared/json-worker-protocol'
 import { identityAnchors } from '../document/change-map'
@@ -56,27 +57,73 @@ export class JsonDocumentEngine {
         )
           throw new Error('文档已变化，请等待树刷新后重试。')
         const result = compileTreeCommand(text, this.tree, request.command)
-        this.pendingIdentity = result.edits.length
+        const modeOnly =
+          request.command.kind === 'set-mode' &&
+          modeOf(indexTree(this.tree).get(request.command.nodeId)!) !== request.command.mode
+        if (!result.edits.length && !modeOnly) {
+          this.pendingIdentity = null
+          return { ...base, analysis, edits: [], durationMs: performance.now() - started }
+        }
+        const source = applySourceEdits(text, result.edits)
+        let prepared: JsonTreeProjection
+        if (result.scalarPatch) prepared = applyScalarTreePatch(this.tree, result.scalarPatch)
+        else if (!result.edits.length) {
+          prepared = { ...this.tree, revision: revision + 1 }
+          shareTreeTopology(this.tree, prepared)
+        } else {
+          const anchors = identityAnchors(
+            this.tree.nodes,
+            revision,
+            revision + 1,
+            text.length,
+            source.length,
+            [
+              {
+                revision: revision + 1,
+                changes: result.edits.map((edit) => ({
+                  offset: edit.offset,
+                  length: edit.length,
+                  insertedLength: edit.text.length,
+                })),
+              },
+            ],
+          )
+          const projection = buildTree(
+            source,
+            { documentId, revision: revision + 1 },
+            () => `${this.idPrefix}:${++this.nextNode}`,
+            this.tree,
+            result.identityHint,
+            {
+              ...(result.identityIds ? { restoredIds: result.identityIds } : {}),
+              ...(anchors ? { anchors } : {}),
+            },
+          )
+          if (!projection.tree) throw new Error(projection.message)
+          prepared = projection.tree
+        }
+        prepared = inheritModes(this.tree, prepared, request.command)
+        const nextModes = snapshotModes(prepared)
+        const patch = result.scalarPatch
           ? {
-              documentId,
-              revision: revision + 1,
-              source: applySourceEdits(text, result.edits),
-              ...(result.identityHint ? { hint: result.identityHint } : {}),
-              ...(result.identityIds ? { ids: result.identityIds } : {}),
-              ...(result.scalarPatch
-                ? {
-                    prepared: applyScalarTreePatch(this.tree, result.scalarPatch),
-                    patch: result.scalarPatch,
-                  }
-                : {}),
-              changes: result.edits.map((edit) => ({
-                offset: edit.offset,
-                length: edit.length,
-                insertedLength: edit.text.length,
-              })),
+              ...result.scalarPatch,
+              editMode: modeOf(indexTree(prepared).get(result.scalarPatch.nodeId)!),
             }
-          : null
-        return { ...base, analysis, edits: result.edits, durationMs: performance.now() - started }
+          : undefined
+        this.pendingIdentity = {
+          documentId,
+          revision: revision + 1,
+          source,
+          prepared,
+          ...(patch ? { patch } : {}),
+        }
+        return {
+          ...base,
+          analysis,
+          edits: result.edits,
+          nextModes,
+          durationMs: performance.now() - started,
+        }
       } catch (error) {
         this.pendingIdentity = null
         return {
@@ -96,7 +143,9 @@ export class JsonDocumentEngine {
       prepared.revision === revision &&
       prepared.source === text
     ) {
-      this.tree = prepared.prepared
+      this.tree = request.restoreModes
+        ? restoreModes(prepared.prepared, request.restoreModes)
+        : prepared.prepared
       this.source = text
       this.analysis = { valid: true, diagnostics: [], diagnosticsTruncated: false }
       this.pendingIdentity = null
@@ -106,6 +155,7 @@ export class JsonDocumentEngine {
         analysis: this.analysis,
         edits: [],
         tree: this.tree,
+        modeSnapshot: snapshotModes(this.tree),
         ...(prepared.patch ? { treePatch: prepared.patch } : {}),
         durationMs: performance.now() - started,
       }
@@ -135,6 +185,7 @@ export class JsonDocumentEngine {
               ids: this.tree.nodes.map((node) => node.id),
             }
           : null
+      if (this.tree) response.nextModes = snapshotModes(this.tree)
       response.durationMs = performance.now() - started
       return response
     }
@@ -170,6 +221,16 @@ export class JsonDocumentEngine {
           ...(anchors ? { anchors } : {}),
         },
       )
+      if (projection.tree) {
+        const inherited =
+          this.tree?.documentId === documentId
+            ? inheritModes(this.tree, projection.tree)
+            : projection.tree
+        const modes =
+          request.restoreModes ?? this.history.findModes(documentId, request.historyVersion, text)
+        projection.tree = modes ? restoreModes(inherited, modes) : inherited
+        response.modeSnapshot = snapshotModes(projection.tree)
+      }
       response.tree = projection.tree
       response.treeMessage = projection.message
       if (projection.tree) {

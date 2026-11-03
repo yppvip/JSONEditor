@@ -1,6 +1,7 @@
 import type { TextEdit } from '../document/contracts'
 import type { JsonNodeType, JsonTreeProjection } from './model'
 import { indexTree, shareTreeTopology } from './model'
+import type { EditMode } from './edit-modes'
 
 export interface ScalarTreePatch {
   documentId: string
@@ -9,6 +10,7 @@ export interface ScalarTreePatch {
   nodeId: string
   type: JsonNodeType
   edit: TextEdit
+  editMode?: EditMode
 }
 export function applyScalarTreePatch(
   tree: JsonTreeProjection,
@@ -38,6 +40,7 @@ export function applyScalarTreePatch(
       return {
         ...node,
         type: patch.type,
+        ...(patch.editMode ? { editMode: patch.editMode } : {}),
         length: edit.text.length,
         memberLength: node.memberLength + delta,
         preview: edit.text.slice(0, 100) + (edit.text.length > 100 ? '…' : ''),

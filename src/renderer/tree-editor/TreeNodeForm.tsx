@@ -2,6 +2,8 @@ import { useState } from 'react'
 import type { ReactNode } from 'react'
 import type { JsonNodeType, JsonTreeNode } from '../../core/tree-model/model'
 import type { TreeCommand } from '../../core/commands/tree-commands'
+import { modeOf } from '../../core/tree-model/edit-modes'
+import type { EditMode } from '../../core/tree-model/edit-modes'
 
 const defaults: Record<JsonNodeType, string> = {
   object: '{}',
@@ -21,6 +23,7 @@ interface Props {
   onCommand: (command: TreeCommand) => void
   onLocate: () => void
   structuralActions?: ReactNode
+  modeEditing?: boolean
 }
 
 export function TreeNodeForm({
@@ -31,10 +34,12 @@ export function TreeNodeForm({
   onCommand,
   onLocate,
   structuralActions,
+  modeEditing = false,
 }: Props): React.JSX.Element {
   const [key, setKey] = useState(node.key ?? '')
   const [type, setType] = useState<JsonNodeType>(node.type)
   const [value, setValue] = useState<string | null>(rawValue)
+  const [mode, setMode] = useState<EditMode>(() => modeOf(node))
   const [newKey, setNewKey] = useState('newKey')
   const [newType, setNewType] = useState<JsonNodeType>('string')
   const [newValue, setNewValue] = useState('""')
@@ -100,6 +105,27 @@ export function TreeNodeForm({
               onChange={(event) => setValue(event.target.value)}
             />
           </label>
+          {modeEditing && (
+            <div className="tree-form-actions">
+              <label>
+                输入模式
+                <select
+                  aria-label="输入模式"
+                  value={mode}
+                  onChange={(event) => setMode(event.target.value as EditMode)}
+                >
+                  <option value="auto">自动</option>
+                  <option value="string">字符串</option>
+                </select>
+              </label>
+              <button
+                type="button"
+                onClick={() => send({ kind: 'set-mode', nodeId: node.id, mode })}
+              >
+                应用输入模式
+              </button>
+            </div>
+          )}
           <p className="tree-hint">切换类型会使用默认值；点击应用才替换原值。</p>
           <div className="tree-form-actions">
             <button type="submit">应用节点修改</button>

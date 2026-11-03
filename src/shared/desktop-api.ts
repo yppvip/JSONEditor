@@ -1,3 +1,4 @@
+import type { ModeSnapshot } from '../core/tree-model/edit-modes'
 export const APP_INFO_CHANNEL = 'desktop:app-info'
 export const DESKTOP_CHANNELS = {
   open: 'desktop:open-file',
@@ -51,6 +52,7 @@ export type DesktopResult<T> =
       message: string
     }
 export interface FileMetadata {
+  modesSaved?: boolean
   fileId: string
   name: string
   path: string
@@ -58,6 +60,8 @@ export interface FileMetadata {
   eol: 'LF' | 'CRLF'
 }
 export interface OpenedFile extends FileMetadata {
+  editModes?: ModeSnapshot
+  modeWarning?: string
   text: string
 }
 export interface RecentFile {
@@ -66,6 +70,7 @@ export interface RecentFile {
   path: string
 }
 export interface SaveFileRequest {
+  editModes?: ModeSnapshot
   fileId: string | null
   text: string
   saveAs: boolean

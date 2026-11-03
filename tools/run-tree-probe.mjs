@@ -4,7 +4,10 @@ import { arch, cpus, release, totalmem } from 'node:os'
 import { resolve } from 'node:path'
 
 const application = await electron.launch({
-  args: [resolve('.'), `--user-data-dir=${resolve('test-results/phase7-performance-profile')}`],
+  args: [
+    resolve('.'),
+    `--user-data-dir=${resolve(process.env.JSONEDITOR_TREE_PROFILE ?? 'test-results/phase7-performance-profile')}`,
+  ],
   env: { ...process.env, ELECTRON_RENDERER_URL: '' },
 })
 try {
@@ -100,7 +103,7 @@ try {
   })
   await expect(page.getByTestId('json-status')).toHaveText(/^JSON 有效/)
   await writeFile(
-    'docs/phase7-performance.json',
+    process.env.JSONEDITOR_TREE_REPORT ?? 'docs/phase7-performance.json',
     JSON.stringify(
       {
         capturedAtUtc: new Date().toISOString(),

@@ -6,6 +6,8 @@ import { compileStructuralCommand } from './structural-commands'
 import type { MoveCommand, SortCommand } from './structural-commands'
 import type { ScalarTreePatch } from '../tree-model/scalar-patch'
 import { MAX_TEXT_LENGTH } from '../json/limits'
+import { inputValue, modeOf, modeValue } from '../tree-model/edit-modes'
+import type { EditMode } from '../tree-model/edit-modes'
 import {
   assertNodeCount,
   countAddedNodes,
@@ -43,6 +45,8 @@ export type TreeCommand =
     }
   | { kind: 'copy'; nodeId: string }
   | { kind: 'convert'; nodeId: string; valueType: 'array' | 'object' }
+  | { kind: 'set-mode'; nodeId: string; mode: EditMode }
+  | { kind: 'edit-value'; nodeId: string; value: string }
   | { kind: 'delete'; nodeId: string }
 
 function checkedValue(text: string, type: JsonNodeType | undefined): string {
@@ -85,6 +89,17 @@ export function compileTreeCommand(
   const index = indexTree(tree)
   const node = index.get(command.nodeId)
   if (!node) throw new Error('节点已不存在，请等待树刷新。')
+  if (command.kind === 'set-mode' || command.kind === 'edit-value') {
+    if (command.kind === 'set-mode' && command.mode !== 'auto' && command.mode !== 'string')
+      throw new Error('输入模式无效。')
+    if (command.kind === 'edit-value' && (node.type === 'object' || node.type === 'array'))
+      throw new Error('容器内容请使用结构命令修改。')
+    const raw =
+      command.kind === 'set-mode'
+        ? modeValue(text.slice(node.offset, node.offset + node.length), node, command.mode)
+        : inputValue(command.value, modeOf(node))
+    return compileTreeCommand(text, tree, { kind: 'update', nodeId: node.id, valueText: raw })
+  }
   const parent = node.parentId ? index.get(node.parentId) : undefined
   const siblings = parent?.children.map((id) => index.get(id)!) ?? []
   const checkKey = (container: JsonTreeNode, key: string | undefined, except?: string): string => {
