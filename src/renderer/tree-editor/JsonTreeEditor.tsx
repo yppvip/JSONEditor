@@ -16,6 +16,7 @@ import { indexTree, jsonPointer } from '../../core/tree-model/model'
 import type { JsonTreeNode, JsonTreeProjection } from '../../core/tree-model/model'
 import type { TreeCommand } from '../../core/commands/tree-commands'
 import { TreeNodeForm } from './TreeNodeForm'
+import { Icon } from '../ui/Icon'
 import { StructuralActions } from './StructuralActions'
 import { TreePresentationStore, presentationRoots } from './presentation-store'
 import type { PresentationNode } from './presentation-store'
@@ -163,11 +164,23 @@ export function JsonTreeEditor({
             ? `${tree.nodes.length.toLocaleString('en-US')} 个节点${current ? '' : '（旧）'}`
             : '暂无树'}
         </span>
-        <button disabled={!tree} onClick={() => api.current?.closeAll()}>
-          全部折叠
+        <button
+          className="icon-button"
+          aria-label="全部折叠"
+          title="全部折叠"
+          disabled={!tree}
+          onClick={() => api.current?.closeAll()}
+        >
+          <Icon name="collapse" />
         </button>
-        <button disabled={!tree} onClick={() => tree && api.current?.open(tree.rootId)}>
-          展开根节点
+        <button
+          className="icon-button"
+          aria-label="展开根节点"
+          title="展开根节点"
+          disabled={!tree}
+          onClick={() => tree && api.current?.open(tree.rootId)}
+        >
+          <Icon name="expand" />
         </button>
       </div>
       <p className={`tree-state ${disabled ? 'readonly' : ''}`} data-testid="tree-status">

@@ -1,0 +1,50 @@
+{
+  "stage": 2,
+  "date": "2026-11-03",
+  "check": {
+    "passed": true,
+    "testFiles": 19,
+    "unitAndComponentTests": 218
+  },
+  "build": {
+    "passed": true
+  },
+  "e2e": {
+    "totalScenarios": 34,
+    "passed": 34,
+    "failed": 0,
+    "skipped": 0,
+    "flaky": 0,
+    "completeSingleRun": true
+  },
+  "developmentSmoke": "task1-stage2-development-smoke.json",
+  "layout": {
+    "initialTreeFraction": 0.5,
+    "initialTreeOnLeft": true,
+    "minimumPaneWidth": 240,
+    "splitterWidth": 8,
+    "contentViewports": [
+      [1100, 760],
+      [640, 480]
+    ],
+    "pointerAndKeyboardResize": true,
+    "cancelAndReset": true,
+    "preferenceRestoredAfterRestart": true,
+    "preferenceRestoredAfterWindowExpansion": true,
+    "swapRetainsPaneWidths": true,
+    "equalPanelHeights": true,
+    "screenshotsInspected": true
+  },
+  "editorContinuity": {
+    "sameMonacoAndTreeDom": true,
+    "caretAndFocus": true,
+    "codeAndTreeScroll": true,
+    "treeExpansionSelectionAndIds": true,
+    "undoRedo": true
+  },
+  "limitations": [
+    "System display scaling at 125% and 150% not verified",
+    "No installer build or release",
+    "Tree performance probe not rerun; tree model and subscriptions unchanged"
+  ]
+}

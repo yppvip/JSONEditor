@@ -1,4 +1,4 @@
-/* finesse · product editor · cool-gray/blue · compact split workspace · feedback-only */
+/* finesse · register=product · shell=resizable split editor · cool-gray/blue · feedback-only */
 :root {
   font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
   font-size: 13px;
@@ -237,36 +237,105 @@ kbd {
   background: var(--surface);
 }
 .editor-split {
-  display: flex;
+  display: grid;
   flex: 1;
   min-height: 0;
-  gap: 8px;
+  min-width: 0;
+  grid-template-rows: minmax(0, 1fr);
   padding-top: 8px;
 }
-.tree-pane {
+.workspace-tree-slot,
+.workspace-code-slot {
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  grid-row: 1;
+}
+.tree-pane,
+.code-pane {
   display: flex;
   flex-direction: column;
-  flex: 0 0 40%;
-  min-width: 260px;
+  width: 100%;
+  min-width: 0;
   min-height: 0;
   background: var(--surface);
   border: 1px solid var(--border);
 }
-.tree-header {
+.code-pane > .editor-container {
+  border: 0;
+  min-width: 0;
+  min-height: 0;
+}
+.tree-header,
+.code-header {
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 6px;
-  padding: 8px;
+  flex: 0 0 34px;
+  min-width: 0;
+  gap: 4px;
+  padding: 2px 6px;
   font-size: 12px;
   border-bottom: 1px solid var(--border);
 }
-.tree-header button {
-  padding: 3px 6px;
-  font-size: 11px;
-}
 .tree-header strong {
   margin-right: auto;
+  white-space: nowrap;
+}
+.tree-header > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tree-header .icon-button {
+  width: 26px;
+  height: 26px;
+}
+.workspace-splitter {
+  grid-row: 1;
+  grid-column: 2;
+  position: relative;
+  cursor: col-resize;
+  touch-action: none;
+  user-select: none;
+  border-radius: 3px;
+}
+.workspace-splitter::before {
+  content: '';
+  position: absolute;
+  width: 1px;
+  top: 0;
+  bottom: 0;
+  left: calc(50% - 0.5px);
+  background: var(--border);
+}
+.workspace-splitter:hover::before,
+.workspace-splitter:focus-visible::before,
+.editor-split[data-resizing='true'] > .workspace-splitter::before {
+  width: 3px;
+  left: calc(50% - 1.5px);
+  background: var(--accent);
+}
+.workspace-splitter:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -1px;
+}
+.editor-split[data-resizing='true'],
+.editor-split[data-resizing='true'] * {
+  cursor: col-resize !important;
+  user-select: none;
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
 }
 .tree-state {
   font-size: 12px;
@@ -425,13 +494,7 @@ kbd {
   background: var(--danger-bg);
   font-size: 12px;
 }
-.editor-split > .editor-container {
-  min-width: 0;
-}
 
-.editor-split > .editor-container {
-  min-width: 0;
-}
 .validation-strip {
   display: flex;
   flex: 0 0 28px;

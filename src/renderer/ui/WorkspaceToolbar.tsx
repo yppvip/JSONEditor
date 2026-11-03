@@ -12,6 +12,9 @@ interface Props {
   loading: boolean
   recent: readonly RecentFile[]
   desktopStatus: string
+  treeOnLeft: boolean
+  onSwap: () => void
+  onResetSplit: () => void
   onAction: (action: DesktopAction) => void
   onOpenRecent: (id: string) => void
   onFormat: () => void
@@ -133,6 +136,18 @@ export function WorkspaceToolbar(props: Props): React.JSX.Element {
         </button>
         <button
           className="icon-button"
+          aria-label="交换左右位置"
+          aria-pressed={!props.treeOnLeft}
+          title={`交换左右位置 · 当前树在${props.treeOnLeft ? '左' : '右'}侧`}
+          onPointerDown={(event) => {
+            if (event.button === 0) event.preventDefault()
+          }}
+          onClick={props.onSwap}
+        >
+          <Icon name="swap" />
+        </button>
+        <button
+          className="icon-button"
           aria-label="更多操作"
           title="更多操作"
           aria-expanded={panel === 'more' || panel === 'about'}
@@ -227,6 +242,15 @@ export function WorkspaceToolbar(props: Props): React.JSX.Element {
                   ))}
                 </select>
               </label>
+              <button
+                onClick={() => {
+                  close(true)
+                  props.onResetSplit()
+                }}
+              >
+                <Icon name="split" />
+                恢复均分
+              </button>
               <button onClick={() => setPanel('about')}>
                 <Icon name="info" />
                 关于 JSONEditor

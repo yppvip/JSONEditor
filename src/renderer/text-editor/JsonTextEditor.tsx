@@ -6,6 +6,8 @@ import { JsonTreeEditor } from '../tree-editor/JsonTreeEditor'
 import { DesktopDocumentSession } from './desktop-session'
 import { desktopShortcut } from '../../shared/desktop-shortcuts'
 import { WorkspaceToolbar } from '../ui/WorkspaceToolbar'
+import { SplitWorkspace } from '../ui/SplitWorkspace'
+import { useWorkspaceLayout } from '../ui/workspace-layout'
 
 const labels = {
   waiting: '正在准备编辑环境…',
@@ -24,6 +26,7 @@ export function JsonTextEditor({
   desktopStatus: string
   desktopError: boolean
 }): React.JSX.Element {
+  const [layout, setLayout] = useWorkspaceLayout()
   const container = useRef<HTMLDivElement>(null)
   const view = useRef<EditorView | null>(null)
   const [status, setStatus] = useState<EditorStatus>({
@@ -136,6 +139,9 @@ export function JsonTextEditor({
         loading={fileStatus.loading}
         recent={fileStatus.recent}
         desktopStatus={desktopStatus}
+        treeOnLeft={layout.treeOnLeft}
+        onSwap={() => setLayout((current) => ({ ...current, treeOnLeft: !current.treeOnLeft }))}
+        onResetSplit={() => setLayout((current) => ({ ...current, treeFraction: 0.5 }))}
         onAction={(action) => void files.dispatch(action)}
         onOpenRecent={(id) => void files.open(id)}
         onFormat={() => view.current?.format()}
@@ -149,23 +155,34 @@ export function JsonTextEditor({
       {status.largeFile && (
         <p className="notice">大文件模式：已暂停自动校验，请使用“校验”或“格式化”。</p>
       )}
-      <div className="editor-split">
-        <JsonTreeEditor
-          tree={status.tree}
-          current={
-            !fileStatus.loading &&
-            !status.composing &&
-            status.state === 'valid' &&
-            status.tree?.revision === status.revision
-          }
-          message={status.treeMessage}
-          error={status.treeError}
-          onCommand={(command, revision) => view.current?.editTree(command, revision)}
-          readValue={(node) => view.current?.readNodeValue(node) ?? null}
-          onLocate={(node, revision) => view.current?.locateNode(node, revision)}
-        />
-        <div className="editor-container" ref={container} data-testid="json-editor" />
-      </div>
+      <SplitWorkspace
+        layout={layout}
+        onChange={setLayout}
+        tree={
+          <JsonTreeEditor
+            tree={status.tree}
+            current={
+              !fileStatus.loading &&
+              !status.composing &&
+              status.state === 'valid' &&
+              status.tree?.revision === status.revision
+            }
+            message={status.treeMessage}
+            error={status.treeError}
+            onCommand={(command, revision) => view.current?.editTree(command, revision)}
+            readValue={(node) => view.current?.readNodeValue(node) ?? null}
+            onLocate={(node, revision) => view.current?.locateNode(node, revision)}
+          />
+        }
+        code={
+          <section className="code-pane" aria-label="JSON 代码面板">
+            <div className="code-header">
+              <strong>JSON 代码</strong>
+            </div>
+            <div className="editor-container" ref={container} data-testid="json-editor" />
+          </section>
+        }
+      />
       <div className={`validation-strip ${status.state}`}>
         <span role="status" aria-label="JSON 校验状态" data-testid="json-status">
           {status.composing ? '输入中，暂停同步' : labels[status.state]}

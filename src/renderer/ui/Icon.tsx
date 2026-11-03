@@ -14,6 +14,10 @@ const paths = {
   paste: 'M9 4H5v17h14V4h-4M9 2h6v5H9zM8 12h8M8 16h6',
   history: 'M3 4v6h6M3 10a9 9 0 1 1 1 8M12 7v5l3 2',
   info: 'M12 8h.01M12 12v5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0',
+  swap: 'M3 7h17m-4-4 4 4-4 4M21 17H4m4-4-4 4 4 4',
+  split: 'M3 4h18v16H3zM12 4v16',
+  collapse: 'm8 9 4-4 4 4M8 15l4 4 4-4',
+  expand: 'm8 5 4 4 4-4M8 19l4-4 4 4',
   close: 'm6 6 12 12M18 6 6 18',
 } as const
 
