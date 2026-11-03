@@ -90,7 +90,7 @@ jobs:
       - name: Linux deb install and installed regression
         if: runner.os == 'Linux'
         run: |
-          sudo apt-get install -y ./release/JSONEditor-*-x64.deb
+          sudo apt-get install -y ./release/JSONEditor-*-amd64.deb
           JSONEDITOR_EXECUTABLE=/opt/JSONEditor/jsoneditor xvfb-run -a pnpm test:e2e
           cp test-results/e2e.json docs/phase7-installed-e2e.json
           sudo apt-get remove -y jsoneditor
@@ -98,8 +98,8 @@ jobs:
       - name: Linux AppImage extract and runtime smoke
         if: runner.os == 'Linux'
         run: |
-          chmod +x release/JSONEditor-*-x64.AppImage
-          release/JSONEditor-*-x64.AppImage --appimage-extract > /dev/null
+          chmod +x release/JSONEditor-*-x86_64.AppImage
+          release/JSONEditor-*-x86_64.AppImage --appimage-extract > /dev/null
           JSONEDITOR_EXECUTABLE="$PWD/squashfs-root/jsoneditor" \
             JSONEDITOR_EXPECTED_VERSION="$(node -p 'require("./package.json").version')" \
             xvfb-run -a pnpm test:installed
@@ -115,8 +115,8 @@ jobs:
           path: |
             release/JSONEditor-*-x64-setup.exe
             release/JSONEditor-*-x64-setup.exe.blockmap
-            release/JSONEditor-*-x64.AppImage
-            release/JSONEditor-*-x64.deb
+            release/JSONEditor-*-x86_64.AppImage
+            release/JSONEditor-*-amd64.deb
             release/manifest-*.json
             release/SHA256SUMS-*.txt
             docs/phase7-*.json

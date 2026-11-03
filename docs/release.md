@@ -38,13 +38,15 @@ pnpm release:manifest win32
 export JSONEDITOR_PROJECT_URL='项目实际的 HTTPS 主页 URL'
 pnpm build:linux
 xvfb-run -a pnpm test:e2e
-sudo apt-get install -y ./release/JSONEditor-*-x64.deb
+sudo apt-get install -y ./release/JSONEditor-*-amd64.deb
 JSONEDITOR_EXECUTABLE=/opt/JSONEditor/jsoneditor xvfb-run -a pnpm test:e2e
 sudo apt-get remove -y jsoneditor
 pnpm release:manifest linux
 ```
 
 CI 另对 AppImage 解包后的可执行文件运行启动/保存检查。该路径验证 AppImage 内的负载，不等同 AppImage/FUSE 双击挂载、系统菜单和真实桌面验收。完整验收应在有 FUSE 的桌面直接运行 AppImage，并分别验证 X11/Wayland、字体、中文输入、剪贴板、文件对话框、权限和 deb 安装/卸载后的菜单。
+
+electron-builder 的 Linux 工件将 x64 架构分别展开为 `x86_64.AppImage` 和 `amd64.deb`。安装、上传与校验和清单必须使用实际文件名；清单中的平台架构标识仍为 `x64`。
 
 工作流只在一次性的 Ubuntu runner 上放开 AppArmor 对非特权用户命名空间的限制，使 Chromium 保持 sandbox 运行；不使用 `--no-sandbox`，不建议在用户机器全局修改此策略。目标系统应采用合适的发行版 sandbox/AppArmor 配置。
 

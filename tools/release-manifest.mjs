@@ -10,7 +10,7 @@ if (!['win32', 'linux'].includes(platform)) throw new Error('Expected win32 or l
 const names =
   platform === 'win32'
     ? [`JSONEditor-${version}-x64-setup.exe`, `JSONEditor-${version}-x64-setup.exe.blockmap`]
-    : [`JSONEditor-${version}-x64.AppImage`, `JSONEditor-${version}-x64.deb`]
+    : [`JSONEditor-${version}-x86_64.AppImage`, `JSONEditor-${version}-amd64.deb`]
 const available = await readdir('release')
 const files = []
 for (const name of names) {

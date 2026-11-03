@@ -8,6 +8,8 @@
 
 修复分支本机验证：`pnpm check`（215/215）、`pnpm build` 和 `pnpm test:e2e`（30/30）全部通过；YAML 解析与测试发现通过。此结果为 Windows 源码运行验证，远程两平台打包/安装验收以本次 Actions 结果为准。
 
+远程运行 `41567773084` 已确认 Windows/Linux 源码 E2E 均通过。Linux 首次实际打包生成 `x86_64.AppImage` / `amd64.deb`，原工作流却查找 `x64`，导致 apt 安装失败；已统一修正工作流安装/上传路径和清单工具的 Linux 工件名。
+
 ## 1. 项目概述
 
 开发支持 Windows/Linux 的桌面 JSON Editor，未来扩展 macOS。核心能力为 JSON 文本编辑、树形编辑、可靠双向同步、节点结构操作、大文件处理，以及文件和剪贴板能力。
