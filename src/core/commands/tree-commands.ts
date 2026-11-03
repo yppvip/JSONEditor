@@ -6,6 +6,13 @@ import { compileStructuralCommand } from './structural-commands'
 import type { MoveCommand, SortCommand } from './structural-commands'
 import type { ScalarTreePatch } from '../tree-model/scalar-patch'
 import { MAX_TEXT_LENGTH } from '../json/limits'
+import {
+  assertNodeCount,
+  countAddedNodes,
+  insertMember,
+  subtreeSize,
+  uniqueObjectKey,
+} from './insertion-commands'
 export { applySourceEdits } from '../document/source-edits'
 import type {
   JsonNodeType,
@@ -18,7 +25,24 @@ export type TreeCommand =
   | MoveCommand
   | SortCommand
   | { kind: 'update'; nodeId: string; key?: string; valueText?: string; valueType?: JsonNodeType }
-  | { kind: 'add'; nodeId: string; key?: string; valueText: string; valueType: JsonNodeType }
+  | {
+      kind: 'add'
+      nodeId: string
+      index?: number
+      key?: string
+      valueText?: string
+      valueType?: JsonNodeType
+    }
+  | {
+      kind: 'insert'
+      nodeId: string
+      position: 'before' | 'after'
+      key?: string
+      valueText?: string
+      valueType?: JsonNodeType
+    }
+  | { kind: 'copy'; nodeId: string }
+  | { kind: 'convert'; nodeId: string; valueType: 'array' | 'object' }
   | { kind: 'delete'; nodeId: string }
 
 function checkedValue(text: string, type: JsonNodeType | undefined): string {
@@ -81,25 +105,43 @@ export function compileTreeCommand(
     const end = next ? next.memberOffset : node.memberOffset + node.memberLength
     edits.push({ offset: start, length: end - start, text: '' })
     identityHint = { parentId: parent.id, children: parent.children.filter((id) => id !== node.id) }
-  } else if (command.kind === 'add') {
-    if (node.type !== 'object' && node.type !== 'array')
+  } else if (command.kind === 'add' || command.kind === 'insert' || command.kind === 'copy') {
+    const container = command.kind === 'add' ? node : parent
+    if (!container) throw new Error('根节点不能插入同级或复制；可向根容器添加子节点。')
+    if (container.type !== 'object' && container.type !== 'array')
       throw new Error('只能向 Object 或 Array 新增子节点。')
-    const raw = checkedValue(command.valueText, command.valueType)
-    const member = node.type === 'object' ? checkKey(node, command.key) + ': ' + raw : raw
-    const lineStart = text.lastIndexOf('\n', node.offset - 1) + 1
-    const prefix = text.slice(lineStart, node.offset)
-    const indent = prefix.match(/^[\t ]*/)?.[0] ?? ''
-    const eol = text.includes('\r\n') ? '\r\n' : '\n'
-    const last = index.get(node.children.at(-1) ?? '')
-    edits.push(
-      last
-        ? {
-            offset: last.memberOffset + last.memberLength,
-            length: 0,
-            text: ',' + eol + indent + '  ' + member,
-          }
-        : { offset: node.offset + 1, length: 0, text: eol + indent + '  ' + member + eol + indent },
-    )
+    if (command.kind === 'insert' && command.position !== 'before' && command.position !== 'after')
+      throw new Error('同级插入位置必须为 before 或 after。')
+    const raw =
+      command.kind === 'copy'
+        ? text.slice(node.offset, node.offset + node.length)
+        : checkedValue(command.valueText ?? '""', command.valueType)
+    if (command.kind === 'copy') assertNodeCount(tree.nodes.length + subtreeSize(node, tree))
+    else countAddedNodes(raw, tree.nodes.length)
+    const key =
+      container.type === 'object'
+        ? command.kind === 'copy'
+          ? uniqueObjectKey(tree, container.id, node.key!)
+          : (command.key ?? uniqueObjectKey(tree, container.id))
+        : undefined
+    const member = container.type === 'object' ? checkKey(container, key) + ': ' + raw : raw
+    const position =
+      command.kind === 'add'
+        ? (command.index ?? container.children.length)
+        : container.children.indexOf(node.id) +
+          (command.kind === 'copy' || command.position === 'after' ? 1 : 0)
+    edits.push(insertMember(text, tree, container, position, member))
+  } else if (command.kind === 'convert') {
+    if (command.valueType !== 'array' && command.valueType !== 'object')
+      throw new Error('容器类型必须为 Array 或 Object。')
+    if (node.type !== command.valueType) {
+      assertNodeCount(tree.nodes.length - subtreeSize(node, tree) + 2)
+      edits.push({
+        offset: node.offset,
+        length: node.length,
+        text: command.valueType === 'array' ? '[""]' : '{"key": ""}',
+      })
+    }
   } else {
     if (command.key !== undefined) {
       if (parent?.type !== 'object' || node.keyOffset === null || node.keyLength === null)
@@ -114,6 +156,11 @@ export function compileTreeCommand(
         edits.push({ offset: node.offset, length: node.length, text: raw })
     }
   }
+  if (
+    text.length + edits.reduce((delta, edit) => delta + edit.text.length - edit.length, 0) >
+    MAX_TEXT_LENGTH
+  )
+    throw new Error('操作超出当前文档支持范围：文本过大。')
   const predicted = applySourceEdits(text, edits)
   if (
     command.kind === 'update' &&
@@ -124,7 +171,6 @@ export function compileTreeCommand(
     edits[0]!.text[0] !== '{' &&
     edits[0]!.text[0] !== '['
   ) {
-    if (predicted.length > MAX_TEXT_LENGTH) throw new Error('操作超出当前文档支持范围：文本过大。')
     const raw = edits[0]!.text
     const type =
       raw[0] === '"'

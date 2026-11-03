@@ -17,6 +17,13 @@ async function size(
     { width, height },
   )
   await expect.poll(() => page.evaluate(() => innerWidth)).toBe(width)
+  // Native sizing can precede ResizeObserver and Monaco's next layout pass.
+  await page.evaluate(
+    () =>
+      new Promise<void>((resolve) => {
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
+      }),
+  )
 }
 
 async function widths(page: Page) {

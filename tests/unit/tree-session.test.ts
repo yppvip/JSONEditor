@@ -2,6 +2,7 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { TextDocumentSession } from '../../src/core/document/text-session'
 import { JsonDocumentEngine } from '../../src/core/tree-model/document-engine'
 import { applySourceEdits } from '../../src/core/commands/tree-commands'
+import type { TreeCommand } from '../../src/core/commands/tree-commands'
 import type {
   JsonWorkerRequest,
   JsonWorkerResponse,
@@ -150,5 +151,56 @@ it('does not accept a result with a different action', () => {
   expect(h.session.getSnapshot().state).toBe('validating')
   h.finish()
   expect(h.session.getSnapshot().state).toBe('valid')
+  h.session.dispose()
+})
+
+it.each(['add', 'insert', 'copy', 'convert'] as const)(
+  'commits %s as one buffer transaction and rejects another command until the new tree is current',
+  (kind) => {
+    const h = harness()
+    h.ready()
+    h.finish()
+    const tree = h.session.getSnapshot().tree!
+    const nodeId = tree.nodes[1]!.id
+    const command: TreeCommand =
+      kind === 'add'
+        ? { kind, nodeId: tree.rootId, index: 0 }
+        : kind === 'insert'
+          ? { kind, nodeId, position: 'after' }
+          : kind === 'convert'
+            ? { kind, nodeId, valueType: 'array' }
+            : { kind, nodeId }
+    expect(h.session.editTree(command, 0)).toBe(true)
+    expect(h.session.editTree(command, 0)).toBe(false)
+    h.finish()
+    expect(h.apply).toHaveBeenCalledOnce()
+    expect(h.apply.mock.calls[0]![0]).toHaveLength(1)
+    expect(h.session.getSnapshot().revision).toBe(1)
+    expect(h.session.editTree(command, 0)).toBe(false)
+    h.finish()
+    expect(h.session.getSnapshot().state).toBe('valid')
+    expect(h.session.getSnapshot().tree?.revision).toBe(1)
+    expect(h.session.getSnapshot().tree?.nodes.length).toBeGreaterThan(tree.nodes.length)
+    h.session.dispose()
+  },
+)
+
+it('drops a pending copy after intervening text input and blocks new commands during composition', () => {
+  const h = harness()
+  h.ready()
+  h.finish()
+  const nodeId = h.session.getSnapshot().tree!.nodes[1]!.id
+  h.session.editTree({ kind: 'copy', nodeId }, 0)
+  const old = h.requests.at(-1)!
+  h.change('{"new":true}')
+  h.finish(old)
+  expect(h.apply).not.toHaveBeenCalled()
+  expect(h.source()).toBe('{"new":true}')
+  vi.advanceTimersByTime(300)
+  h.finish()
+  h.session.setComposing(true)
+  expect(h.session.editTree({ kind: 'add', nodeId: h.session.getSnapshot().tree!.rootId }, 1)).toBe(
+    false,
+  )
   h.session.dispose()
 })

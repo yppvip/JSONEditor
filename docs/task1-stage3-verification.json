@@ -1,0 +1,54 @@
+{
+  "stage": 3,
+  "date": "2026-11-03",
+  "scope": [
+    "positioned child addition",
+    "before/after sibling insertion",
+    "source-preserving deep copy",
+    "unique generated object keys",
+    "atomic object/array conversion"
+  ],
+  "check": {
+    "passed": true,
+    "testFiles": 20,
+    "unitAndComponentTests": 250,
+    "newCommandTests": 27,
+    "newSessionTests": 5
+  },
+  "build": {
+    "passed": true
+  },
+  "e2e": {
+    "totalScenarios": 35,
+    "initialPasses": 34,
+    "initialFailures": 1,
+    "correctedScenario": "split-workspace pointer and keyboard resizing",
+    "correctedRetestPasses": 3,
+    "repeatCount": 3,
+    "allScenariosVerified": true,
+    "completeSingleRun": false,
+    "newProductionWorkerScenarioPassed": true
+  },
+  "developmentSmoke": "task1-stage3-development-smoke.json",
+  "verified": {
+    "numberLexemesAndStringEscapesPreserved": true,
+    "allCopiedNodeIdsFresh": true,
+    "existingNodeIdsRetained": true,
+    "defaultEmptyChild": true,
+    "sameContainerTypeNoOp": true,
+    "oneBufferTransactionPerNewCommand": true,
+    "historicalUndoRedoIds": true,
+    "duplicateAndStaleCommandGates": true,
+    "imeAndBusyGates": true,
+    "treeNodeLimit": 100000,
+    "depthLimit": 512,
+    "textLengthLimitUtf16": 20971520
+  },
+  "limitations": [
+    "No new right-click or inline-edit UI; scheduled for later stages",
+    "Automatic/string edit-mode metadata is stage 4",
+    "Historical identity restoration remains subject to existing bounded history cache",
+    "Tree performance probe not rerun; normalized model and subscriptions unchanged",
+    "No installer build or release"
+  ]
+}

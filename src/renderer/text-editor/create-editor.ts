@@ -63,6 +63,7 @@ export interface EditorView {
 function createTransport(): JsonWorkerTransport {
   const worker = new Worker(new URL('../../workers/json.worker.ts', import.meta.url), {
     type: 'module',
+    name: 'json-document',
   })
   return {
     send: (request) => worker.postMessage(request),
