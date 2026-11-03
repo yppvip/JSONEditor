@@ -32,7 +32,7 @@ pnpm release:manifest win32
 
 ## Linux x64
 
-在原生 Linux 主机或 Ubuntu 24.04 CI runner 上运行。`JSONEDITOR_PROJECT_URL` 必须是项目真实的 HTTPS 主页；deb 打包器要求该字段，仓库未提供时不虚构地址。在 GitHub 仓库 Actions Variables 中配置同名变量。
+在原生 Linux 主机或 Ubuntu 24.04 CI runner 上运行。`JSONEDITOR_PROJECT_URL` 必须是项目真实的 HTTPS 主页；deb 打包器要求该字段。GitHub Actions 优先使用同名仓库变量，未配置时自动使用当前仓库的 HTTPS 地址。本地 Linux 打包仍需显式设置该变量或 package.json homepage。
 
 ```bash
 export JSONEDITOR_PROJECT_URL='项目实际的 HTTPS 主页 URL'
@@ -51,6 +51,8 @@ CI 另对 AppImage 解包后的可执行文件运行启动/保存检查。该路
 ## CI 与证据
 
 `.github/workflows/verify.yml` 使用独立 Windows 2025、Ubuntu 24.04 runner，固定官方 Action 提交、Node 和 pnpm 版本，执行 frozen-lockfile 安装、检查、源码 E2E、规模探针、原生打包与安装后 E2E。token 仅有 contents:read，checkout 不保留凭据；构建明确指定 `--publish never`。
+
+E2E 源码必须随仓库提交，不能在 `.gitignore` 中忽略 `tests`。CI 在启动回归前先运行 `playwright test --list`，当前共 30 项；本地可用 `pnpm exec playwright test --list` 检查。每个场景使用隔离 profile，源码和安装后测试共用同一套用例，安装后通过 `JSONEDITOR_EXECUTABLE` 选择真实程序。
 
 每个平台上传独立候选工件和测试报告，保留 14 天。失败任务也保存现有报告；是否通过必须看 job 结果和报告内容，不能仅根据附件存在判断。只有当前 package.json 版本的必需工件齐全，清单工具才生成 `manifest-<platform>.json` 和 `SHA256SUMS-<platform>.txt`；清单不是签名，也不证明来源可信。
 

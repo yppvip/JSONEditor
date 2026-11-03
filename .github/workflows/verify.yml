@@ -25,7 +25,7 @@ jobs:
         shell: bash
     env:
       CSC_IDENTITY_AUTO_DISCOVERY: 'false'
-      JSONEDITOR_PROJECT_URL: ${{ vars.JSONEDITOR_PROJECT_URL }}
+      JSONEDITOR_PROJECT_URL: ${{ vars.JSONEDITOR_PROJECT_URL || format('{0}/{1}', github.server_url, github.repository) }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
@@ -50,6 +50,8 @@ jobs:
       - run: pnpm check
       - name: Build production resources
         run: pnpm build
+      - name: Verify tracked Electron regression tests are available
+        run: pnpm exec playwright test --list
       - name: Source Electron regression
         run: |
           if [ "$RUNNER_OS" = Linux ]; then

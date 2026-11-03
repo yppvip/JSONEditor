@@ -4,6 +4,10 @@
 
 2026-11-03 新电脑环境重建：当前仓库位于 `D:\Code\JSONEditor`，开发工具和缓存统一使用 `D:\5DevelopmentEnvironment`；复用现有 Node 24.22.1、npm 11.19.1、Git 2.56.0.windows.1、PowerShell 7.6.7、VS Code 1.143.1 及 Python 环境 `D:\2PythonEnv\py13`。独立 pnpm 仍固定 12.15.0，依赖版本与锁文件保持不变。以下旧路径及旧机器验收属于历史记录，当前环境以 [环境重建记录](environment-rebuild-2026-11-03.md) 为准。`.node-version` 保留团队验证基线 24.16.0；本机使用 package.json 允许范围内的更新补丁。
 
+同日 CI 修复：移除 `.gitignore` 对整个 `tests` 的忽略，从 `75c0dfb` 恢复被发布提交删除的 7 个 E2E 文件；补齐发布边界 2 项测试，共 30 项。源码/安装后测试使用隔离 profile，CI 增加测试发现检查；Linux 打包主页默认使用当前 GitHub 仓库 URL，可由 Actions Variable 覆盖。详见 [发布与验收](release.md)。
+
+修复分支本机验证：`pnpm check`（215/215）、`pnpm build` 和 `pnpm test:e2e`（30/30）全部通过；YAML 解析与测试发现通过。此结果为 Windows 源码运行验证，远程两平台打包/安装验收以本次 Actions 结果为准。
+
 ## 1. 项目概述
 
 开发支持 Windows/Linux 的桌面 JSON Editor，未来扩展 macOS。核心能力为 JSON 文本编辑、树形编辑、可靠双向同步、节点结构操作、大文件处理，以及文件和剪贴板能力。
