@@ -3,6 +3,7 @@ import type { ElectronApplication, Page } from '@playwright/test'
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 import { closeApp } from './close-app'
+import { inlineValue } from './tree-actions'
 
 async function launch(directory: string): Promise<{ app: ElectronApplication; page: Page }> {
   await mkdir(directory, { recursive: true })
@@ -46,11 +47,7 @@ test('native-file IPC preserves BOM/CRLF and number lexemes, dirty undo state an
     await page.getByRole('button', { name: '打开', exact: true }).click()
     await expect(page.getByTestId('document-name')).toHaveText('bom.json')
     await expect(page.getByTestId('tree-status')).toHaveText('树可编辑')
-    await page.locator('.tree-key').filter({ hasText: /^n$/ }).click()
-    await page
-      .getByRole('textbox', { name: '节点 JSON 值', exact: true })
-      .fill('900719925474099312346')
-    await page.getByRole('button', { name: '应用节点修改', exact: true }).click()
+    await inlineValue(page, 'n', '900719925474099312346')
     await expect(page.getByTestId('document-name')).toContainText('已修改')
     await page.getByRole('button', { name: '保存', exact: true }).click()
     await expect(page.getByTestId('document-name')).toHaveText('bom.json')

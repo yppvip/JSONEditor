@@ -1,0 +1,56 @@
+{
+  "stage": 6,
+  "date": "2026-11-03",
+  "scope": [
+    "persistent row handles and compact local type icons",
+    "context menu and click/keyboard type submenu",
+    "sibling insertion, deep copy, deletion and automatic child focus",
+    "on-demand advanced JSON and precise move dialogs",
+    "drop cursor, container highlight and edge autoscroll",
+    "removal of permanent bottom forms and normal-state helper text"
+  ],
+  "check": {
+    "passed": true,
+    "testFiles": 24,
+    "unitAndComponentTests": 296,
+    "newMenuComponentTests": 5
+  },
+  "build": { "passed": true },
+  "e2e": { "passed": true, "totalScenarios": 47, "newMenuScenarios": 5, "completeSingleRun": true },
+  "verified": {
+    "rightClickSelectsAndOpensNodeMenu": true,
+    "treeRowAndHandleKeyboardEntry": true,
+    "nestedKeyboardNavigationAndFocusReturn": true,
+    "minimumWindowCollisionHandling": true,
+    "rootAndReadonlyRestrictions": true,
+    "automaticNewChildrenAndInlineFocus": true,
+    "siblingBeforeAfterOrdering": true,
+    "uniqueCopyKeysAndExactNumberLexemes": true,
+    "conversionAndDeletionSingleStepUndo": true,
+    "existingModePersistenceScenariosMigrated": true,
+    "advancedAtomicKeyValueEditing": true,
+    "preciseMoveCycleAndConflictGates": true,
+    "nativeLeftDragThresholdAndReorder": true,
+    "edgeAutoscrollStopsOnDragEnd": true,
+    "normalTreeHasNoPermanentFormOrPath": true
+  },
+  "developmentSmoke": "task1-stage6-development-smoke.json",
+  "treePerformance": {
+    "report": "task1-stage6-tree-performance.json",
+    "passed": true,
+    "maxNodes": 100000,
+    "mountedRowsAtMaxNodes": 25,
+    "scalarEditMedianMsAtMaxNodes": 152.4763,
+    "sortMsAtMaxNodes": 373.6449,
+    "undoMsAtMaxNodes": 942.3798,
+    "limitDegradationPassed": true,
+    "note": "Larger tree viewport after removing the bottom form; probe now uses inline submission and menu sort, so timings are not a strict cross-stage benchmark"
+  },
+  "screenshots": ["task1-stage6-workspace.png", "task1-stage6-node-menu.png"],
+  "limitations": [
+    "GSAP local motion remains stage 7",
+    "No complete manual OS IME or 125/150 percent display scaling acceptance",
+    "No long-running memory or deep/mixed structure performance pressure test",
+    "No installer build or release"
+  ]
+}

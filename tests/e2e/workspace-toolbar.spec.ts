@@ -51,7 +51,7 @@ test('compact toolbar fits desktop and minimum windows; overflow actions remain 
     await expect(page.getByRole('region', { name: '更多操作' })).toHaveCount(0)
     await page.getByRole('button', { name: '复制选项', exact: true }).click()
     await expect(page.getByRole('button', { name: '复制原文', exact: true })).toBeVisible()
-    await page.getByTestId('tree-status').click()
+    await page.locator('.tree-header strong').click()
     await expect(page.getByRole('region', { name: '复制选项' })).toHaveCount(0)
     await more.click()
     await page.getByRole('button', { name: '关于 JSONEditor', exact: true }).click()

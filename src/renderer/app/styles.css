@@ -347,6 +347,15 @@ kbd {
   color: var(--warning);
   background: var(--warning-bg);
 }
+.tree-state:not(.readonly) {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
 .tree-viewport {
   flex: 1;
   min-height: 120px;
@@ -389,6 +398,12 @@ kbd {
 .tree-type {
   color: var(--muted);
   font-size: 10px;
+  display: inline-flex;
+  flex: 0 0 16px;
+}
+.tree-type .icon {
+  width: 14px;
+  height: 14px;
 }
 .tree-preview {
   overflow: hidden;
@@ -538,12 +553,151 @@ kbd {
   gap: 6px;
 }
 .tree-drag-handle {
-  flex: 0 0 14px;
+  flex: 0 0 22px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 3px;
   cursor: grab;
   color: var(--muted);
   user-select: none;
 }
-.tree-drag-handle:active {
+.tree-drag-handle[data-can-drag='false'] {
+  cursor: context-menu;
+}
+.tree-drag-handle:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+@media (hover: hover) {
+  .tree-drag-handle:hover {
+    background: var(--selection);
+  }
+}
+.tree-drop-cursor {
+  position: absolute;
+  height: 2px;
+  background: var(--accent);
+  pointer-events: none;
+  z-index: 2;
+}
+.tree-drop-cursor::before {
+  content: '';
+  position: absolute;
+  left: -3px;
+  top: -2px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+/* finesse · component: node menu · tokens: inherited · no page redesign */
+.tree-context-menu {
+  position: fixed;
+  z-index: 120;
+  width: 200px;
+  max-width: calc(100vw - 16px);
+  max-height: calc(100dvh - 16px);
+  overflow-y: auto;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--popup-shadow);
+  padding: 4px;
+}
+.tree-context-menu button {
+  width: 100%;
+  min-height: 30px;
+  border: 0;
+  border-radius: 3px;
+  background: transparent;
+  padding: 5px 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  text-align: left;
+}
+.tree-context-menu button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+  background: var(--selection);
+}
+@media (hover: hover) {
+  .tree-context-menu button:hover:not(:disabled) {
+    background: var(--selection);
+  }
+}
+.tree-context-menu button:active:not(:disabled) {
+  background: var(--border);
+}
+.tree-context-menu button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.tree-context-menu button[aria-checked='true']::after {
+  content: '✓';
+  color: var(--accent);
+}
+.tree-context-menu button.danger {
+  color: var(--danger);
+}
+.tree-context-menu hr {
+  border: 0;
+  border-top: 1px solid var(--border);
+  margin: 4px 0;
+}
+.tree-context-menu.submenu {
+  z-index: 121;
+  width: 190px;
+}
+.node-dialog {
+  width: min(520px, calc(100vw - 24px));
+  max-height: calc(100dvh - 32px);
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: var(--popup-shadow);
+}
+.node-dialog::backdrop {
+  background: #20242b35;
+}
+.node-dialog header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.node-dialog header button {
+  min-width: 28px;
+  min-height: 28px;
+}
+.node-dialog .tree-form {
+  border: 0;
+  max-height: none;
+  overflow: visible;
+  padding: 0;
+}
+.node-dialog .tree-structure {
+  margin-top: 0;
+}
+.node-dialog .dialog-path {
+  color: var(--muted);
+  overflow-wrap: anywhere;
+  font-family: var(--font-mono);
+}
+.node-dialog .tree-structure label {
+  display: block;
+  margin: 8px 0;
+}
+.node-dialog .tree-structure input {
+  display: block;
+  width: 100%;
+  padding: 5px;
+}
+.tree-drag-handle[data-can-drag='true']:active {
   cursor: grabbing;
 }
 .tree-structure {

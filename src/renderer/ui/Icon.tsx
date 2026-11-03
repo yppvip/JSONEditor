@@ -19,6 +19,14 @@ const paths = {
   collapse: 'm8 9 4-4 4 4M8 15l4 4 4-4',
   expand: 'm8 5 4 4 4-4M8 19l4-4 4 4',
   close: 'm6 6 12 12M18 6 6 18',
+  drag: 'M8 5h.01M16 5h.01M8 12h.01M16 12h.01M8 19h.01M16 19h.01',
+  automatic: 'm4 19 7-14 7 14M7 13h8M20 4v4M18 6h4',
+  string: 'M5 5v6H2V5h6M16 5v6h-3V5h6M4 19h16',
+  number: 'm9 3-3 18M18 3l-3 18M3 9h18M2 15h18',
+  boolean: 'M4 4h16v16H4zM7 12l3 3 7-7',
+  null: 'M19 5 5 19M20 12a8 8 0 1 1-16 0 8 8 0 0 1 16 0',
+  array: 'M8 3H4v18h4M16 3h4v18h-4',
+  object: 'M9 3H7v6l-3 3 3 3v6h2M15 3h2v6l3 3-3 3v6h-2',
 } as const
 
 export type IconName = keyof typeof paths

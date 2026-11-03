@@ -2,6 +2,7 @@ import { expect, test } from '@playwright/test'
 import type { Page } from '@playwright/test'
 import { launchApp } from './launch-app'
 import { closeApp } from './close-app'
+import { menuAction, nodeMenu, closeNodeDialog } from './tree-actions'
 
 async function runEditor(run: (page: Page) => Promise<void>): Promise<void> {
   const app = await launchApp()
@@ -68,12 +69,12 @@ test('move buttons and sort preserve property IDs and share the text undo histor
     await source(page, '{"z":900719925474099312345,"a":-0,"m":1e9}')
     await row(page, 'z').click()
     const id = await row(page, 'z').getAttribute('data-node-id')
-    await page.getByRole('button', { name: '下移节点', exact: true }).click()
+    await menuAction(page, 'z', '下移节点', '更多')
     await ready(page)
     expect(await keys(page)).toEqual(['$', 'a', 'z', 'm'])
     await expect(row(page, 'z')).toHaveAttribute('data-node-id', id!)
     await row(page, '$').click()
-    await page.getByRole('button', { name: '子节点升序', exact: true }).click()
+    await menuAction(page, '$', '子节点升序', '更多')
     await ready(page)
     expect(await keys(page)).toEqual(['$', 'a', 'm', 'z'])
     await expect(row(page, 'z')).toHaveAttribute('data-node-id', id!)
@@ -91,30 +92,34 @@ test('cross-container move form preserves a subtree, prevents cycles and rejects
   await runEditor(async (page) => {
     await source(page, '{"from":{"child":true},"target":{"child":false},"items":[]}')
     await row(page, 'from').click()
+    await menuAction(page, 'from', '移动到…', '更多')
     await page.getByRole('textbox', { name: '移动目标 JSON Pointer' }).fill('/from')
     await page.getByRole('button', { name: '移动节点', exact: true }).click()
     await expect(page.getByRole('alert', { name: '节点操作错误' })).toContainText('自身或后代')
+    await closeNodeDialog(page)
     await page.getByRole('button', { name: '展开 from', exact: true }).click()
     await row(page, 'child').click()
     const id = await row(page, 'child').getAttribute('data-node-id')
+    await menuAction(page, 'child', '移动到…', '更多')
     await page.getByRole('textbox', { name: '移动目标 JSON Pointer' }).fill('/target')
     await page.getByRole('button', { name: '移动节点', exact: true }).click()
     await expect(page.getByRole('alert', { name: '节点操作错误' })).toContainText('已存在')
     await page.getByRole('textbox', { name: '移动目标 JSON Pointer' }).fill('/items')
     await page.getByRole('button', { name: '移动节点', exact: true }).click()
     await ready(page)
+    await closeNodeDialog(page)
     await page.getByRole('button', { name: '展开 items', exact: true }).click()
     await expect(row(page, '[0]')).toHaveAttribute('data-node-id', id!)
     await row(page, '[0]').click()
+    await menuAction(page, '[0]', '移动到…', '更多')
     await page.getByRole('textbox', { name: '移动目标 JSON Pointer' }).fill('/target')
     await page.getByRole('textbox', { name: '移动目标属性名' }).fill('moved')
     await page.getByRole('button', { name: '移动节点', exact: true }).click()
     await ready(page)
+    await closeNodeDialog(page)
     await page.getByRole('button', { name: '展开 target', exact: true }).click()
     await expect(row(page, 'moved')).toHaveAttribute('data-node-id', id!)
-    await expect(page.getByRole('textbox', { name: '节点 JSON 值', exact: true })).toHaveValue(
-      'true',
-    )
+    await expect(row(page, 'moved').locator('.tree-preview')).toHaveText('true')
   })
 })
 
@@ -150,19 +155,19 @@ test('HTML5 cross-container drop keeps the subtree ID and opens its destination'
 test('exact numeric sort keeps large numbers, and invalid text disables structural actions', async () => {
   await runEditor(async (page) => {
     await source(page, '[900719925474099312346,900719925474099312345,-0,1e999]')
-    await page.getByRole('button', { name: '子节点升序', exact: true }).click()
+    await menuAction(page, '$', '子节点升序', '更多')
     await ready(page)
     await row(page, '[0]').click()
-    await expect(page.getByRole('textbox', { name: '节点 JSON 值', exact: true })).toHaveValue('-0')
+    await expect(row(page, '[0]').locator('.tree-preview')).toHaveText('-0')
     await row(page, '[1]').click()
-    await expect(page.getByRole('textbox', { name: '节点 JSON 值', exact: true })).toHaveValue(
-      '900719925474099312345',
-    )
+    await expect(row(page, '[1]').locator('.tree-preview')).toHaveText('900719925474099312345')
     await page.getByRole('textbox', { name: 'JSON 文本编辑器' }).focus()
     await page.keyboard.press('ControlOrMeta+A')
     await page.keyboard.insertText('{')
     await expect(page.getByTestId('tree-status')).toContainText('树已过期')
-    await expect(page.getByRole('button', { name: '上移节点', exact: true })).toBeDisabled()
-    await expect(page.locator('.tree-drag-handle')).toHaveCount(0)
+    await nodeMenu(page, '[1]')
+    await page.getByRole('menuitem', { name: '更多', exact: true }).click()
+    await expect(page.getByRole('menuitem', { name: '上移节点', exact: true })).toBeDisabled()
+    await expect(page.locator('.tree-drag-handle[data-can-drag="true"]')).toHaveCount(0)
   })
 })

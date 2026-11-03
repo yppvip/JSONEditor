@@ -2,6 +2,7 @@ import { expect, test } from '@playwright/test'
 import type { Page } from '@playwright/test'
 import { launchApp } from './launch-app'
 import { closeApp } from './close-app'
+import { menuAction, inlineValue } from './tree-actions'
 
 async function runEditor(run: (page: Page) => Promise<void>): Promise<void> {
   const app = await launchApp()
@@ -52,9 +53,7 @@ test('text array insertion and deletion preserve selection and expanded descenda
     await expect(row(page, '[2]')).toHaveAttribute('data-node-id', second!)
     await expect(row(page, '[2]')).toHaveClass(/selected/)
     await expect(row(page, 'n')).toHaveAttribute('data-node-id', descendant!)
-    await expect(page.getByRole('textbox', { name: '节点 JSON 值', exact: true })).toHaveValue(
-      '{"n":2}',
-    )
+    await expect(row(page, '[2]').locator('.tree-preview')).toHaveText('1 项')
     // This is one text insertion transaction in Monaco's own history.
     await page.getByRole('button', { name: '撤销', exact: true }).click()
     await ready(page)
@@ -68,7 +67,7 @@ test('tree deletion undo and redo restore historical IDs and text edits share th
     await setSource(page, '[1,2,3]')
     const original = await identities(page)
     await row(page, '[0]').click()
-    await page.getByRole('button', { name: '删除节点', exact: true }).click()
+    await menuAction(page, '[0]', '移除')
     await ready(page)
     const deleted = await identities(page)
     expect(deleted).toEqual([original[0], original[2], original[3]])
@@ -79,10 +78,7 @@ test('tree deletion undo and redo restore historical IDs and text edits share th
     await ready(page)
     expect(await identities(page)).toEqual(deleted)
     await row(page, '[0]').click()
-    await page
-      .getByRole('textbox', { name: '节点 JSON 值', exact: true })
-      .fill('900719925474099312345')
-    await page.getByRole('button', { name: '应用节点修改', exact: true }).click()
+    await inlineValue(page, '[0]', '900719925474099312345')
     await ready(page)
     await page.getByRole('button', { name: '格式化', exact: true }).click()
     await ready(page)
@@ -92,7 +88,7 @@ test('tree deletion undo and redo restore historical IDs and text edits share th
     await page.getByRole('button', { name: '撤销', exact: true }).click()
     await ready(page)
     expect(await identities(page)).toEqual(deleted)
-    await expect(page.getByRole('textbox', { name: '节点 JSON 值', exact: true })).toHaveValue('2')
+    await expect(row(page, '[0]').locator('.tree-preview')).toHaveText('2')
   })
 })
 
@@ -106,7 +102,7 @@ test('rapid invalid intermediate input preserves the last tree until the latest 
     await page.keyboard.press('ArrowRight')
     await page.keyboard.insertText('0')
     await expect(page.getByTestId('json-status')).toContainText('JSON 校验未通过')
-    await expect(page.getByRole('button', { name: '应用节点修改', exact: true })).toBeDisabled()
+    await expect(row(page, '[1]').locator('[data-edit-field="value"]')).toBeDisabled()
     await page.keyboard.insertText(',')
     await ready(page)
     await expect(row(page, '[2]')).toHaveAttribute('data-node-id', second!)
@@ -135,15 +131,13 @@ test('a real JSON Worker failure retains source and recovers with a new tree gen
       }, 0)
     })
     await expect(page.getByTestId('worker-status')).toHaveText('后台不可用')
-    await expect(page.getByRole('button', { name: '应用节点修改', exact: true })).toBeDisabled()
+    await expect(row(page, 'kept').locator('[data-edit-field="value"]')).toBeDisabled()
     await expect(page.locator('.view-lines')).toContainText('900719925474099312345')
     await page.getByRole('button', { name: '重试后台', exact: true }).click()
     await ready(page)
     await expect(row(page, 'kept')).not.toHaveAttribute('data-node-id', previous!)
     await row(page, 'kept').click()
-    await expect(page.getByRole('textbox', { name: '节点 JSON 值', exact: true })).toHaveValue(
-      '900719925474099312345',
-    )
+    await expect(row(page, 'kept').locator('.tree-preview')).toHaveText('900719925474099312345')
   })
 })
 
@@ -155,13 +149,11 @@ test('composition events suspend tree commands and resume validation without rew
     await input.focus()
     await input.dispatchEvent('compositionstart', { data: '' })
     await expect(page.getByTestId('json-status')).toHaveText('输入中，暂停同步')
-    await expect(page.getByRole('button', { name: '应用节点修改', exact: true })).toBeDisabled()
+    await expect(row(page, 'text').locator('[data-edit-field="value"]')).toBeDisabled()
     await expect(page.getByRole('button', { name: '格式化', exact: true })).toBeDisabled()
     await input.dispatchEvent('compositionend', { data: '' })
     await ready(page)
-    await expect(page.getByRole('textbox', { name: '节点 JSON 值', exact: true })).toHaveValue(
-      '"中文"',
-    )
+    await expect(row(page, 'text').locator('.tree-preview')).toHaveText('"中文"')
   })
 })
 
@@ -190,7 +182,7 @@ test('a large format transaction and undo keep all source values and restore tre
     await ready(page)
     expect(await identities(page)).toEqual(before)
     await row(page, '[0]').click()
-    await expect(page.getByRole('textbox', { name: '节点 JSON 值', exact: true })).toHaveValue('0')
+    await expect(row(page, '[0]').locator('.tree-preview')).toHaveText('0')
     await input.focus()
     await page.keyboard.press('ControlOrMeta+End')
     await page.keyboard.press('ArrowLeft')

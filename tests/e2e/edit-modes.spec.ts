@@ -4,6 +4,7 @@ import { mkdir, readFile, rmdir, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { launchApp } from './launch-app'
 import { closeApp } from './close-app'
+import { menuAction } from './tree-actions'
 
 const row = (page: Page, key: string) =>
   page.locator('.json-tree-row').filter({
@@ -20,10 +21,16 @@ async function openFile(app: ElectronApplication, page: Page, path: string) {
   await expect(page.getByTestId('tree-status')).toHaveText('树可编辑')
 }
 async function setMode(page: Page, mode: 'auto' | 'string') {
-  await page.getByRole('combobox', { name: '输入模式' }).selectOption(mode)
-  await page.getByRole('button', { name: '应用输入模式' }).click()
+  await page.locator('.json-tree-row.selected .tree-drag-handle').click({ button: 'right' })
+  await page.getByRole('menuitem', { name: '类型', exact: true }).click()
+  await page
+    .getByRole('menuitemradio', { name: mode === 'auto' ? '自动' : '字符串', exact: true })
+    .click()
   await expect(page.getByTestId('tree-status')).toHaveText('树可编辑')
-  await expect(page.getByRole('combobox', { name: '输入模式' })).toHaveValue(mode)
+  await expect(page.locator('.json-tree-row.selected .tree-type')).toHaveAttribute(
+    'data-mode',
+    mode,
+  )
 }
 
 test('metadata-only changes share native undo/redo with text and save without modifying JSON', async () => {
@@ -35,7 +42,10 @@ test('metadata-only changes share native undo/redo with text and save without mo
     await expect(page.getByTestId('tree-status')).toHaveText('树可编辑')
     await openFile(app, page, path)
     await row(page, 'name').click()
-    await expect(page.getByRole('combobox', { name: '输入模式' })).toHaveValue('string')
+    await expect(page.locator('.json-tree-row.selected .tree-type')).toHaveAttribute(
+      'data-mode',
+      'string',
+    )
     const source = await page.locator('.view-lines').innerText()
     await setMode(page, 'auto')
     expect(await page.locator('.view-lines').innerText()).toBe(source)
@@ -43,10 +53,16 @@ test('metadata-only changes share native undo/redo with text and save without mo
     const input = page.getByRole('textbox', { name: 'JSON 文本编辑器' })
     await input.focus()
     await page.keyboard.press('ControlOrMeta+Z')
-    await expect(page.getByRole('combobox', { name: '输入模式' })).toHaveValue('string')
+    await expect(page.locator('.json-tree-row.selected .tree-type')).toHaveAttribute(
+      'data-mode',
+      'string',
+    )
     await expect(page.getByTestId('document-name')).toHaveText('mode.json')
     await page.keyboard.press('ControlOrMeta+Y')
-    await expect(page.getByRole('combobox', { name: '输入模式' })).toHaveValue('auto')
+    await expect(page.locator('.json-tree-row.selected .tree-type')).toHaveAttribute(
+      'data-mode',
+      'auto',
+    )
     await page.getByRole('button', { name: '保存', exact: true }).click()
     await expect(page.getByTestId('document-name')).toHaveText('mode.json')
     expect(await readFile(path, 'utf8')).toBe('{"name":"hello"}')
@@ -54,21 +70,36 @@ test('metadata-only changes share native undo/redo with text and save without mo
     await expect(page.getByTestId('tree-status')).toHaveText('树可编辑')
     await page.getByRole('button', { name: '撤销', exact: true }).click()
     await expect(page.getByTestId('document-name')).toHaveText('mode.json')
-    await expect(page.getByRole('combobox', { name: '输入模式' })).toHaveValue('auto')
+    await expect(page.locator('.json-tree-row.selected .tree-type')).toHaveAttribute(
+      'data-mode',
+      'auto',
+    )
     await page.getByRole('button', { name: '撤销', exact: true }).click()
-    await expect(page.getByRole('combobox', { name: '输入模式' })).toHaveValue('string')
+    await expect(page.locator('.json-tree-row.selected .tree-type')).toHaveAttribute(
+      'data-mode',
+      'string',
+    )
     await page.getByRole('button', { name: '重做', exact: true }).click()
-    await expect(page.getByRole('combobox', { name: '输入模式' })).toHaveValue('auto')
+    await expect(page.locator('.json-tree-row.selected .tree-type')).toHaveAttribute(
+      'data-mode',
+      'auto',
+    )
     const errors: string[] = []
     page.on('pageerror', (error) => errors.push(error.message))
     await openFile(app, page, path)
     await row(page, 'name').click()
-    await expect(page.getByRole('combobox', { name: '输入模式' })).toHaveValue('auto')
+    await expect(page.locator('.json-tree-row.selected .tree-type')).toHaveAttribute(
+      'data-mode',
+      'auto',
+    )
     // Metadata history must not depend on the Worker's eight identity checkpoints.
     for (let i = 0; i < 12; i++) await setMode(page, i % 2 === 0 ? 'string' : 'auto')
     for (let i = 0; i < 12; i++)
       await page.getByRole('button', { name: '撤销', exact: true }).click()
-    await expect(page.getByRole('combobox', { name: '输入模式' })).toHaveValue('auto')
+    await expect(page.locator('.json-tree-row.selected .tree-type')).toHaveAttribute(
+      'data-mode',
+      'auto',
+    )
     expect(errors).toEqual([])
   } finally {
     await closeApp(app)
@@ -86,18 +117,25 @@ test('modes follow rename and array move, survive Save As/restart, accept whites
     await openFile(app, page, path)
     await row(page, 'name').click()
     await setMode(page, 'auto')
-    await page.getByRole('textbox', { name: '属性名', exact: true }).fill('renamed')
-    await page.getByRole('button', { name: '应用节点修改' }).click()
+    await row(page, 'name').locator('.tree-key').click()
+    await page.getByRole('textbox', { name: '行内属性名', exact: true }).fill('renamed')
+    await page.getByRole('textbox', { name: '行内属性名', exact: true }).press('Enter')
     await expect(page.getByTestId('tree-status')).toHaveText('树可编辑')
-    await expect(page.getByRole('combobox', { name: '输入模式' })).toHaveValue('auto')
+    await expect(page.locator('.json-tree-row.selected .tree-type')).toHaveAttribute(
+      'data-mode',
+      'auto',
+    )
     await page.getByRole('button', { name: '展开 items', exact: true }).click()
     await row(page, '[1]').click()
     await setMode(page, 'auto')
     await page.getByRole('button', { name: '保存', exact: true }).click()
     await expect(page.getByTestId('document-name')).toHaveText('original.json')
-    await page.getByRole('button', { name: '上移节点', exact: true }).click()
+    await menuAction(page, '[1]', '上移节点', '更多')
     await expect(page.getByTestId('tree-status')).toHaveText('树可编辑')
-    await expect(page.getByRole('combobox', { name: '输入模式' })).toHaveValue('auto')
+    await expect(page.locator('.json-tree-row.selected .tree-type')).toHaveAttribute(
+      'data-mode',
+      'auto',
+    )
     await app.evaluate(({ dialog }) => {
       dialog.showSaveDialog = async () => ({ canceled: true, filePath: '' })
     })
@@ -116,27 +154,48 @@ test('modes follow rename and array move, survive Save As/restart, accept whites
     await expect(page.getByTestId('tree-status')).toHaveText('树可编辑')
     await openFile(app, page, copy)
     await row(page, 'renamed').click()
-    await expect(page.getByRole('combobox', { name: '输入模式' })).toHaveValue('auto')
+    await expect(page.locator('.json-tree-row.selected .tree-type')).toHaveAttribute(
+      'data-mode',
+      'auto',
+    )
     await page.getByRole('button', { name: '展开 items', exact: true }).click()
     await row(page, '[0]').click()
-    await expect(page.getByRole('combobox', { name: '输入模式' })).toHaveValue('auto')
+    await expect(page.locator('.json-tree-row.selected .tree-type')).toHaveAttribute(
+      'data-mode',
+      'auto',
+    )
     await row(page, '[1]').click()
-    await expect(page.getByRole('combobox', { name: '输入模式' })).toHaveValue('string')
+    await expect(page.locator('.json-tree-row.selected .tree-type')).toHaveAttribute(
+      'data-mode',
+      'string',
+    )
     await writeFile(copy, JSON.stringify(JSON.parse(await readFile(copy, 'utf8')), null, 4))
     await openFile(app, page, copy)
     await row(page, 'renamed').click()
-    await expect(page.getByRole('combobox', { name: '输入模式' })).toHaveValue('auto')
+    await expect(page.locator('.json-tree-row.selected .tree-type')).toHaveAttribute(
+      'data-mode',
+      'auto',
+    )
     await writeFile(copy, '{"renamed":"changed","items":["second","first"]}')
     await openFile(app, page, copy)
     await row(page, 'renamed').click()
-    await expect(page.getByRole('combobox', { name: '输入模式' })).toHaveValue('string')
+    await expect(page.locator('.json-tree-row.selected .tree-type')).toHaveAttribute(
+      'data-mode',
+      'string',
+    )
     await expect(page.getByTestId('file-status')).toContainText('外部变化')
     await openFile(app, page, path)
     await row(page, 'renamed').click()
-    await expect(page.getByRole('combobox', { name: '输入模式' })).toHaveValue('auto')
+    await expect(page.locator('.json-tree-row.selected .tree-type')).toHaveAttribute(
+      'data-mode',
+      'auto',
+    )
     await page.getByRole('button', { name: '展开 items', exact: true }).click()
     await row(page, '[1]').click()
-    await expect(page.getByRole('combobox', { name: '输入模式' })).toHaveValue('auto')
+    await expect(page.locator('.json-tree-row.selected .tree-type')).toHaveAttribute(
+      'data-mode',
+      'auto',
+    )
   } finally {
     await closeApp(app)
   }

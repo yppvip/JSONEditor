@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>节点菜单 · 状态预览</title>
+    <link rel="stylesheet" href="../../src/renderer/app/styles.css" />
+    <style>
+      body {
+        padding: 24px;
+      }
+      h1 {
+        font-size: 20px;
+      }
+      .states {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 24px;
+        max-width: 1000px;
+      }
+      .tree-context-menu {
+        position: static;
+        margin-top: 8px;
+        box-shadow: none;
+      }
+      .hover button,
+      .focus button {
+        background: var(--selection);
+      }
+      .focus button {
+        outline: 2px solid var(--accent);
+        outline-offset: -2px;
+      }
+      .active button {
+        background: var(--border);
+      }
+      .error {
+        color: var(--danger);
+      }
+    </style>
+  </head>
+  <body>
+    <h1>节点菜单 · 八种状态</h1>
+    <p>静态外观样页；键盘导航、拖放和命令门禁在应用内验证。</p>
+    <div class="states">
+      <section>
+        <strong>默认</strong>
+        <div class="tree-context-menu" role="menu">
+          <button role="menuitem">类型 <span aria-hidden="true">›</span></button
+          ><button role="menuitem">添加子节点</button><button role="menuitem">追加</button
+          ><button role="menuitem">插入</button><button role="menuitem">复制节点</button
+          ><button role="menuitem" class="danger">移除</button>
+          <hr />
+          <button role="menuitem">更多 <span aria-hidden="true">›</span></button>
+        </div>
+      </section>
+      <section>
+        <strong>悬浮</strong>
+        <div class="tree-context-menu hover"><button>复制节点</button></div>
+      </section>
+      <section>
+        <strong>键盘焦点</strong>
+        <div class="tree-context-menu focus">
+          <button>类型 <span aria-hidden="true">›</span></button>
+        </div>
+      </section>
+      <section>
+        <strong>按下</strong>
+        <div class="tree-context-menu active"><button>添加子节点</button></div>
+      </section>
+      <section>
+        <strong>根节点限制</strong>
+        <div class="tree-context-menu"><button disabled>移除</button></div>
+      </section>
+      <section>
+        <strong>后台忙碌</strong>
+        <div class="tree-context-menu" aria-busy="true">
+          <button disabled>类型 <span aria-hidden="true">›</span></button
+          ><button disabled>追加</button>
+        </div>
+      </section>
+      <section>
+        <strong>错误反馈</strong>
+        <p class="error" role="alert">不能移动到自身或后代，避免循环。</p>
+      </section>
+      <section>
+        <strong>类型已选中</strong>
+        <div class="tree-context-menu">
+          <button role="menuitemradio" aria-checked="true" aria-label="自动">自动</button
+          ><button role="menuitemradio" aria-checked="false">字符串</button>
+        </div>
+        <p>提交后菜单关闭，树行呈现新内容。</p>
+      </section>
+    </div>
+  </body>
+</html>

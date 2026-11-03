@@ -49,7 +49,7 @@ test('JSON HTML content stays literal and application protocol rejects unsafe re
       .locator('.tree-key')
       .filter({ hasText: /^html$/ })
       .click()
-    await expect(page.getByRole('textbox', { name: '节点 JSON 值', exact: true })).toHaveValue(
+    await expect(page.locator('.json-tree-row.selected .tree-preview')).toHaveText(
       JSON.stringify(html),
     )
     await expect(page.locator('img')).toHaveCount(0)

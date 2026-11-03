@@ -37,23 +37,21 @@ try {
     await expect(page.getByTestId('tree-status')).toHaveText('树可编辑')
     const pasteToTreeMs = performance.now() - started
     const mountedRows = await page.getByRole('treeitem').count()
-    await page
-      .locator('.tree-key')
-      .filter({ hasText: /^\[0\]$/ })
-      .click()
     const editSamplesMs = []
     for (const value of [
       '900719925474099312345',
       '900719925474099312346',
       '900719925474099312347',
     ]) {
-      await page.getByRole('textbox', { name: '节点 JSON 值', exact: true }).fill(value)
+      const target = page
+        .locator('.json-tree-row')
+        .filter({ has: page.locator('.tree-key').filter({ hasText: /^\[0\]$/ }) })
+      await target.locator('[data-edit-field="value"]').click()
+      await page.getByRole('textbox', { name: '行内值', exact: true }).fill(value)
       const editStarted = performance.now()
-      await page.getByRole('button', { name: '应用节点修改' }).click()
+      await page.getByRole('textbox', { name: '行内值', exact: true }).press('Enter')
       await expect(page.getByTestId('tree-status')).toHaveText('树可编辑', { timeout: 20_000 })
-      await expect(page.getByRole('textbox', { name: '节点 JSON 值', exact: true })).toHaveValue(
-        value,
-      )
+      await expect(target.locator('.tree-preview')).toHaveText(value)
       editSamplesMs.push(performance.now() - editStarted)
     }
     const editToTreeMs = [...editSamplesMs].sort((a, b) => a - b)[1]
@@ -76,8 +74,14 @@ try {
     )
   }
   await page.locator('.tree-key').filter({ hasText: /^\$$/ }).click()
+  await page
+    .locator('.json-tree-row')
+    .filter({ has: page.locator('.tree-key').filter({ hasText: /^\$$/ }) })
+    .locator('.tree-drag-handle')
+    .click({ button: 'right' })
+  await page.getByRole('menuitem', { name: '更多', exact: true }).click()
   const sortStarted = performance.now()
-  await page.getByRole('button', { name: '子节点降序', exact: true }).click()
+  await page.getByRole('menuitem', { name: '子节点降序', exact: true }).click()
   await expect(page.getByTestId('tree-status')).toHaveText('树可编辑', { timeout: 20_000 })
   await expect(
     page
