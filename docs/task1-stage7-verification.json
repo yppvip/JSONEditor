@@ -1,0 +1,61 @@
+{
+  "stage": 7,
+  "date": "2026-11-03",
+  "dependencies": { "gsap": "3.15.0", "@gsap/react": "2.1.2" },
+  "scope": [
+    "scoped interruptible menu and submenu entrances",
+    "instant workspace swap with local surface fade",
+    "single visible confirmed-drop feedback overlay",
+    "local type and successful-save CSS feedback",
+    "reduced-motion initial and live preference support"
+  ],
+  "durationsMs": { "menu": 120, "submenu": 120, "swap": 180, "drop": 160, "typeAndSave": 140 },
+  "check": {
+    "passed": true,
+    "testFiles": 25,
+    "unitAndComponentTests": 302,
+    "newMotionComponentTests": 6
+  },
+  "build": { "passed": true },
+  "e2e": {
+    "passed": true,
+    "totalScenarios": 51,
+    "newMotionScenarios": 4,
+    "completeSingleRun": true
+  },
+  "verified": {
+    "activeTweenAndInlineStyleCleanupOnUnmount": true,
+    "menuReopenAndDetachedElementCleanup": true,
+    "rapidSwapsPreserveLiveEditorDom": true,
+    "resizeInterruptsSwapWithoutReplayingOnRelease": true,
+    "confirmedDropOnlyAnimatesSingleVisibleOverlay": true,
+    "scrollStopsDropOverlay": true,
+    "offscreenNodeHasNoDropTween": true,
+    "reducedMotionHasVisibleFinalStates": true,
+    "livePreferenceChangeRevertsTween": true,
+    "virtualRowMountDoesNotFlashType": true,
+    "typeAndSuccessfulSaveFeedback": true,
+    "cssFeedbackTimerCleanup": true
+  },
+  "developmentSmoke": "task1-stage7-development-smoke.json",
+  "treePerformance": {
+    "report": "task1-stage7-tree-performance.json",
+    "passed": true,
+    "maxNodes": 100000,
+    "mountedRowsAtMaxNodes": 25,
+    "scalarEditMedianMsAtMaxNodes": 137.8616,
+    "sortMsAtMaxNodes": 595.8691,
+    "undoMsAtMaxNodes": 962.6321,
+    "limitDegradationPassed": true,
+    "note": "Single synthetic flat-array run; sort sample slower than stage 6; no performance improvement or stable FPS claim"
+  },
+  "transientFailures": [
+    "Initial full unit run had one existing node-mode-store EPERM temporary-file rename failure; isolated 5/5 and final full 302/302 passed without storage changes"
+  ],
+  "limitations": [
+    "No complete manual OS IME or 125/150 percent display scaling acceptance",
+    "No sustained frame-rate measurement on mid-range hardware",
+    "No long-running memory or deep/mixed structure pressure test",
+    "No installer build or release; comprehensive manual acceptance remains stage 8"
+  ]
+}

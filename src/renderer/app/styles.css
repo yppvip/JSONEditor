@@ -357,10 +357,54 @@ kbd {
   white-space: nowrap;
 }
 .tree-viewport {
+  position: relative;
   flex: 1;
   min-height: 120px;
   overflow-x: auto;
   overflow-y: hidden;
+}
+.tree-drop-feedback {
+  position: absolute;
+  z-index: 3;
+  pointer-events: none;
+  opacity: 0;
+  background: var(--selection);
+  outline: 1px solid var(--accent);
+  outline-offset: -1px;
+  border-radius: 3px;
+}
+/* finesse · component: local interaction feedback · transform/opacity only */
+@keyframes type-confirmed {
+  from {
+    opacity: 0.65;
+    transform: scale(1.12);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes save-confirmed {
+  from {
+    opacity: 0.65;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.tree-type.feedback-confirmed {
+  animation: type-confirmed 140ms ease-out;
+}
+.file-status.feedback-confirmed {
+  color: var(--success);
+  animation: save-confirmed 140ms ease-out;
+}
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  .toolbar-action:active:enabled,
+  .icon-button:active:enabled,
+  .tree-context-menu button:active:enabled {
+    transform: translateY(1px);
+  }
 }
 .json-tree-row {
   display: flex;
@@ -869,7 +913,11 @@ kbd {
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  button {
+  *,
+  *::before,
+  *::after {
     transition: none;
+    animation: none !important;
+    scroll-behavior: auto !important;
   }
 }

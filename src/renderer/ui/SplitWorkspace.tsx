@@ -2,6 +2,7 @@ import { useEffect, useId, useRef, useState } from 'react'
 import type { PointerEvent, ReactNode } from 'react'
 import { clampFraction, layoutBounds, MIN_PANE_WIDTH, SPLITTER_WIDTH } from './workspace-layout'
 import type { WorkspaceLayout } from './workspace-layout'
+import { useSurfaceMotion } from './motion'
 
 interface Props {
   layout: WorkspaceLayout
@@ -34,6 +35,7 @@ export function SplitWorkspace({ layout, onChange, tree, code }: Props): React.J
   const left = layout.treeOnLeft ? fraction : 1 - fraction
   const bounds = layoutBounds(width)
   const minimum = `min(${MIN_PANE_WIDTH}px, calc((100% - ${SPLITTER_WIDTH}px) / 2))`
+  useSurfaceMotion(root, 'swap', layout.treeOnLeft, draft === null)
 
   useEffect(() => {
     if (!root.current) return

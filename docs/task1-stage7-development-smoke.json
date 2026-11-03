@@ -1,0 +1,14 @@
+{
+  "capturedAtUtc": "2026-11-03T10:11:48.171Z",
+  "passed": true,
+  "url": "http://127.0.0.1:5173/",
+  "desktop": {
+    "name": "jsoneditor",
+    "version": "0.7.0",
+    "platform": "win32",
+    "electron": "45.0.0",
+    "sandboxed": true,
+    "contextIsolated": true
+  },
+  "worker": "ready"
+}

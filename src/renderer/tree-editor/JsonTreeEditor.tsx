@@ -22,6 +22,7 @@ import { NodeDialog } from './NodeDialog'
 import { OpenNodeMenu } from './menu-context'
 import type { MenuAnchor } from './menu-context'
 import { DropCursor } from './DropCursor'
+import { DropFeedback } from './DropFeedback'
 import { TreePresentationStore, presentationRoots } from './presentation-store'
 import type { PresentationNode } from './presentation-store'
 import { InlineEdit } from './InlineEdit'
@@ -198,6 +199,18 @@ export function JsonTreeEditor({
   const closeMenu = useCallback(() => setMenu(null), [])
   const live = useRef({ tree, current })
   const pending = useRef<{ command: TreeCommand; tree: JsonTreeProjection } | null>(null)
+  const pendingDrop = useRef<{
+    nodeId: string
+    parentId: string
+    index: number
+    revision: number
+    documentId: string
+  } | null>(null)
+  const [landing, setLanding] = useState<{
+    nodeId: string
+    revision: number
+    documentId: string
+  } | null>(null)
   useLayoutEffect(() => {
     live.current = { tree, current }
   }, [tree, current])
@@ -241,7 +254,17 @@ export function JsonTreeEditor({
   )
   const move = useCallback<NonNullable<PresentationTreeProps['onMove']>>(
     ({ parentId, dragIds, index: position }) => {
-      if (parentId && dragIds.length === 1) store.drop(dragIds[0]!, parentId, position)
+      if (parentId && dragIds.length === 1 && store.canDrop(dragIds[0]!, parentId, position)) {
+        const action = store.move(dragIds[0]!, parentId, position),
+          tree = store.tree!
+        const node = indexTree(tree).get(action.nodeId)!
+        if (
+          node.parentId !== parentId ||
+          indexTree(tree).get(parentId)!.children.indexOf(node.id) !== action.index
+        )
+          pendingDrop.current = { ...action, revision: tree.revision, documentId: tree.documentId }
+        store.drop(dragIds[0]!, parentId, position)
+      }
     },
     [store],
   )
@@ -251,6 +274,31 @@ export function JsonTreeEditor({
   useLayoutEffect(() => {
     store.update(tree, current && !!tree?.editable, onCommand)
   }, [store, tree, current, onCommand])
+  useEffect(() => {
+    const attempt = pendingDrop.current
+    if (!attempt || !tree) return
+    if (error || tree.documentId !== attempt.documentId) {
+      pendingDrop.current = null
+      return
+    }
+    if (!current || tree.revision <= attempt.revision) return
+    pendingDrop.current = null
+    const index = indexTree(tree),
+      node = index.get(attempt.nodeId)
+    if (
+      node?.parentId !== attempt.parentId ||
+      index.get(attempt.parentId)?.children[attempt.index] !== attempt.nodeId
+    )
+      return
+    let cancelled = false
+    queueMicrotask(() => {
+      if (!cancelled)
+        setLanding({ nodeId: node.id, documentId: tree.documentId, revision: tree.revision })
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [tree, current, error])
   useEffect(() => {
     if (!area.current) return
     const observer = new ResizeObserver(([entry]) => {
@@ -455,6 +503,17 @@ export function JsonTreeEditor({
               </RowStore.Provider>
             </OpenNodeMenu.Provider>
           )}
+          <DropFeedback
+            viewport={area}
+            nodeId={
+              current &&
+              landing?.documentId === tree?.documentId &&
+              landing?.revision === tree?.revision
+                ? landing?.nodeId
+                : undefined
+            }
+            revision={tree?.revision ?? 0}
+          />
         </div>
         {error && !dialog && (
           <p className="tree-command-error" role="alert" aria-label="节点操作错误">

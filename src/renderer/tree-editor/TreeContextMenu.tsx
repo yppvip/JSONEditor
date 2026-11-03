@@ -7,6 +7,7 @@ import type { JsonTreeNode, JsonTreeProjection } from '../../core/tree-model/mod
 import { modeOf } from '../../core/tree-model/edit-modes'
 import type { MenuAnchor } from './menu-context'
 import { focusHandle, menuKeys } from './menu-helpers'
+import { useSurfaceMotion } from '../ui/motion'
 
 function Submenu({
   title,
@@ -29,6 +30,7 @@ function Submenu({
     menu.style.top = `${Math.max(8, Math.min(anchor.top, window.innerHeight - rect.height - 8))}px`
     menu.querySelector<HTMLElement>('button:not(:disabled)')?.focus()
   }, [name])
+  useSurfaceMotion(ref, 'submenu', name)
   return (
     <div
       className="tree-context-menu submenu"
@@ -90,6 +92,7 @@ export function TreeContextMenu({
       window.removeEventListener('resize', close)
     }
   }, [anchor, onClose])
+  useSurfaceMotion(ref, 'menu')
   const dismiss = () => {
     onClose()
     focusHandle(node.id)

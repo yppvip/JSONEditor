@@ -9,6 +9,7 @@ import { desktopShortcut } from '../../shared/desktop-shortcuts'
 import { WorkspaceToolbar } from '../ui/WorkspaceToolbar'
 import { SplitWorkspace } from '../ui/SplitWorkspace'
 import { useWorkspaceLayout } from '../ui/workspace-layout'
+import { useCssFeedback } from '../ui/motion'
 
 const labels = {
   waiting: '正在准备编辑环境…',
@@ -29,6 +30,7 @@ export function JsonTextEditor({
 }): React.JSX.Element {
   const [layout, setLayout] = useWorkspaceLayout()
   const container = useRef<HTMLDivElement>(null)
+  const savedStatus = useRef<HTMLSpanElement>(null)
   const view = useRef<EditorView | null>(null)
   const [status, setStatus] = useState<EditorStatus>({
     ...initialDocumentStatus,
@@ -44,6 +46,8 @@ export function JsonTextEditor({
   } | null>(null)
   const [files] = useState(() => new DesktopDocumentSession(window.desktop))
   const fileStatus = useSyncExternalStore(files.subscribe, files.getSnapshot)
+  const saved = !fileStatus.busy && !fileStatus.dirty && fileStatus.message === '已保存当前文本。'
+  useCssFeedback(savedStatus, saved, saved)
   useEffect(() => {
     if (!container.current) return
     const load = pendingLoad.current
@@ -198,6 +202,7 @@ export function JsonTextEditor({
           role={fileStatus.error ? 'alert' : 'status'}
           aria-label={fileStatus.error ? '文件操作错误' : '文件操作状态'}
           data-testid="file-status"
+          ref={savedStatus}
           title={
             fileStatus.message ||
             (fileStatus.dirty
