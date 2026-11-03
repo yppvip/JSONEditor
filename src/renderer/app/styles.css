@@ -468,7 +468,9 @@ kbd {
   padding: 2px 3px;
   text-align: left;
   font: inherit;
-  min-width: 16px;
+  /* Keep empty keys/strings and short values clickable beyond their glyphs. */
+  min-width: max(48px, 4em);
+  min-height: 24px;
   white-space: nowrap;
 }
 .tree-edit-cell:focus-visible {

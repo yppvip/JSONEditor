@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import type { Page } from '@playwright/test'
+import type { Locator, Page } from '@playwright/test'
 import { launchApp } from './launch-app'
 import { closeApp } from './close-app'
 
@@ -18,6 +18,73 @@ async function replace(page: Page, text: string) {
   }, text)
   await ready(page)
 }
+
+async function clickCellEdge(cell: Locator) {
+  const box = (await cell.boundingBox())!
+  expect(box.width).toBeGreaterThanOrEqual(48)
+  expect(box.height).toBeGreaterThanOrEqual(24)
+  // Click beyond the empty string's quotes, near the bottom-right of the actual button.
+  await cell.click({ position: { x: box.width - 2, y: box.height - 2 } })
+}
+
+for (const [width, height] of [
+  [1100, 760],
+  [640, 480],
+] as const) {
+  test(`empty and whitespace cells accept edge clicks at ${width}x${height}`, async () => {
+    const app = await launchApp()
+    try {
+      const page = await app.firstWindow()
+      await app.evaluate(
+        ({ BrowserWindow }, size) => BrowserWindow.getAllWindows()[0]!.setSize(...size),
+        [width, height] as [number, number],
+      )
+      await ready(page)
+      await replace(page, '{"":"","name":"","spaces":"   ","items":[""]}')
+      const key = page.getByRole('textbox', { name: '行内属性名' })
+      const value = page.getByRole('textbox', { name: '行内值' })
+      await clickCellEdge(page.getByRole('button', { name: '编辑属性名 ""', exact: true }))
+      await expect(key).toHaveValue('')
+      await key.fill('未提交')
+      await key.press('Escape')
+      await clickCellEdge(page.getByRole('button', { name: '编辑值 ""', exact: true }))
+      await expect(value).toHaveValue('')
+      await value.press('Escape')
+
+      await clickCellEdge(page.getByRole('button', { name: '编辑属性名 ""', exact: true }))
+      await key.fill('空属性')
+      await key.press('Tab')
+      await expect(value).toBeFocused()
+      await expect(value).toHaveValue('')
+      await value.fill('中文值')
+      await value.press('Enter')
+      await expect(value).toHaveCount(0)
+      await expect(page.getByRole('button', { name: '编辑值 空属性', exact: true })).toHaveText(
+        '"中文值"',
+      )
+
+      for (const [name, original] of [
+        ['name', ''],
+        ['spaces', '   '],
+      ] as const) {
+        const cell = page.getByRole('button', { name: `编辑值 ${name}`, exact: true })
+        await clickCellEdge(cell)
+        await expect(value).toHaveValue(original)
+        await value.press('Escape')
+      }
+      await page.getByRole('button', { name: '展开 items', exact: true }).click()
+      await clickCellEdge(page.getByRole('button', { name: '编辑值 [0]', exact: true }))
+      await expect(value).toHaveValue('')
+      await value.press('Escape')
+      await expect(page.getByRole('menu', { name: '节点菜单', exact: true })).toHaveCount(0)
+      await expect(page.locator('[data-dragging="true"]')).toHaveCount(0)
+      await page.screenshot({ path: test.info().outputPath('empty-cells.png') })
+    } finally {
+      await closeApp(app)
+    }
+  })
+}
+
 test('inline key Tab opens value, locked strings retain quotes, Escape cancels and edits share undo', async () => {
   const app = await launchApp()
   try {
