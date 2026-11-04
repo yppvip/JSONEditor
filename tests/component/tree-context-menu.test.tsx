@@ -1,9 +1,12 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { act, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { buildTree } from '../../src/core/tree-model/model'
 import { TreeContextMenu } from '../../src/renderer/tree-editor/TreeContextMenu'
 beforeEach(() => vi.stubGlobal('CSS', { escape: (value: string) => value }))
-afterEach(() => vi.unstubAllGlobals())
+afterEach(() => {
+  vi.useRealTimers()
+  vi.unstubAllGlobals()
+})
 function fixture(root = false, enabled = true) {
   let n = 0
   const tree = buildTree('{"a":1,"b":2}', { documentId: 'doc', revision: 7 }, () => `n${++n}`).tree!
@@ -11,7 +14,7 @@ function fixture(root = false, enabled = true) {
     command = vi.fn(),
     close = vi.fn(),
     dialog = vi.fn()
-  render(
+  const view = render(
     <TreeContextMenu
       anchor={{ id: node.id, x: 20, y: 30 }}
       tree={tree}
@@ -24,7 +27,7 @@ function fixture(root = false, enabled = true) {
       onLocate={vi.fn()}
     />,
   )
-  return { tree, node, command, close, dialog }
+  return { tree, node, command, close, dialog, view }
 }
 it('root exposes creation but disables sibling operations and removal', () => {
   fixture(true)
@@ -71,4 +74,95 @@ it('outside pointer dismissal and explicit advanced dialog selection are support
   fireEvent.click(screen.getByRole('menuitem', { name: '更多' }))
   fireEvent.click(screen.getByRole('menuitem', { name: '移动到…' }))
   expect(dialog).toHaveBeenCalledWith('move')
+})
+
+it('hover opens after a short delay without moving focus, switches groups and closes over ordinary items', () => {
+  vi.useFakeTimers()
+  fixture()
+  const type = screen.getByRole('menuitem', { name: '类型' })
+  fireEvent.pointerOver(type)
+  act(() => vi.advanceTimersByTime(119))
+  expect(screen.queryByRole('menu', { name: '类型菜单' })).toBeNull()
+  act(() => vi.advanceTimersByTime(1))
+  expect(screen.getByRole('menu', { name: '类型菜单' })).toBeTruthy()
+  expect(document.activeElement).toBe(type)
+  expect(type.getAttribute('aria-expanded')).toBe('true')
+  fireEvent.pointerOver(screen.getByRole('menuitem', { name: '更多' }))
+  act(() => vi.advanceTimersByTime(120))
+  expect(screen.queryByRole('menu', { name: '类型菜单' })).toBeNull()
+  expect(screen.getByRole('menu', { name: '更多节点操作' })).toBeTruthy()
+  expect(document.activeElement).toBe(type)
+  fireEvent.pointerOver(screen.getByRole('menuitem', { name: '追加' }))
+  act(() => vi.advanceTimersByTime(200))
+  expect(screen.queryByRole('menu', { name: '更多节点操作' })).toBeNull()
+})
+
+it('crossing the gap into a submenu cancels delayed closing; leaving closes only the submenu', () => {
+  vi.useFakeTimers()
+  const { close } = fixture()
+  fireEvent.pointerOver(screen.getByRole('menuitem', { name: '类型' }))
+  act(() => vi.advanceTimersByTime(120))
+  const menu = screen.getByRole('menu', { name: '节点菜单' })
+  fireEvent.pointerLeave(menu)
+  act(() => vi.advanceTimersByTime(150))
+  fireEvent.pointerEnter(screen.getByRole('menu', { name: '类型菜单' }))
+  act(() => vi.advanceTimersByTime(250))
+  expect(screen.getByRole('menu', { name: '类型菜单' })).toBeTruthy()
+  fireEvent.pointerLeave(menu)
+  act(() => vi.advanceTimersByTime(200))
+  expect(screen.queryByRole('menu', { name: '类型菜单' })).toBeNull()
+  expect(screen.getByRole('menu', { name: '节点菜单' })).toBeTruthy()
+  expect(close).not.toHaveBeenCalled()
+})
+
+it('keyboard and clicking an already hovered group focus options immediately and cancel hover timers', () => {
+  vi.useFakeTimers()
+  fixture()
+  const type = screen.getByRole('menuitem', { name: '类型' })
+  fireEvent.pointerOver(type)
+  act(() => vi.advanceTimersByTime(120))
+  fireEvent.click(type)
+  expect(document.activeElement).toBe(screen.getByRole('menuitemradio', { name: '自动' }))
+  fireEvent.pointerLeave(screen.getByRole('menu', { name: '节点菜单' }))
+  fireEvent.keyDown(document.activeElement!, { key: 'ArrowDown' })
+  act(() => vi.advanceTimersByTime(250))
+  expect(document.activeElement).toBe(screen.getByRole('menuitemradio', { name: '字符串' }))
+  fireEvent.keyDown(document.activeElement!, { key: 'ArrowLeft' })
+  expect(document.activeElement).toBe(type)
+  fireEvent.pointerOver(screen.getByRole('menuitem', { name: '更多' }))
+  fireEvent.keyDown(type, { key: 'ArrowRight' })
+  act(() => vi.advanceTimersByTime(150))
+  expect(screen.queryByRole('menu', { name: '更多节点操作' })).toBeNull()
+  expect(document.activeElement).toBe(screen.getByRole('menuitemradio', { name: '自动' }))
+  fireEvent.pointerOver(screen.getByRole('menuitem', { name: '更多' }))
+  act(() => vi.advanceTimersByTime(120))
+  expect(screen.getByRole('menu', { name: '更多节点操作' })).toBeTruthy()
+  expect(document.activeElement).toBe(type)
+})
+
+it('disabled groups do not open on hover, and outside dismissal clears pending opens', () => {
+  vi.useFakeTimers()
+  const { close } = fixture(false, false)
+  fireEvent.pointerOver(screen.getByRole('menuitem', { name: '类型' }))
+  act(() => vi.advanceTimersByTime(150))
+  expect(screen.queryByRole('menu', { name: '类型菜单' })).toBeNull()
+  fireEvent.pointerOver(screen.getByRole('menuitem', { name: '更多' }))
+  fireEvent.pointerDown(document.body)
+  act(() => vi.advanceTimersByTime(150))
+  expect(close).toHaveBeenCalledOnce()
+  expect(screen.queryByRole('menu', { name: '更多节点操作' })).toBeNull()
+})
+
+it('leaving before the opening delay and unmounting both cancel pending hover work', () => {
+  vi.useFakeTimers()
+  const { view } = fixture()
+  fireEvent.pointerOver(screen.getByRole('menuitem', { name: '类型' }))
+  act(() => vi.advanceTimersByTime(60))
+  fireEvent.pointerLeave(screen.getByRole('menu', { name: '节点菜单' }))
+  act(() => vi.advanceTimersByTime(150))
+  expect(screen.queryByRole('menu', { name: '类型菜单' })).toBeNull()
+  fireEvent.pointerOver(screen.getByRole('menuitem', { name: '更多' }))
+  view.unmount()
+  act(() => vi.advanceTimersByTime(500))
+  expect(screen.queryByRole('menu')).toBeNull()
 })

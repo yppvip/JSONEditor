@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState } from 'react'
+import { useCallback, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import type { ReactNode } from 'react'
 import type { TreeCommand } from '../../core/commands/tree-commands'
@@ -14,11 +14,17 @@ function Submenu({
   name,
   children,
   close,
+  focusRequest,
+  onEnter,
+  onLeave,
 }: {
   title: string
   name: string
   children: ReactNode
   close: () => void
+  focusRequest: number
+  onEnter: () => void
+  onLeave: () => void
 }) {
   const ref = useRef<HTMLDivElement>(null)
   useLayoutEffect(() => {
@@ -28,8 +34,10 @@ function Submenu({
       rect = menu.getBoundingClientRect()
     menu.style.left = `${Math.max(8, Math.min(anchor.right + 4, window.innerWidth - rect.width - 8) < anchor.right ? anchor.left - rect.width - 4 : anchor.right + 4)}px`
     menu.style.top = `${Math.max(8, Math.min(anchor.top, window.innerHeight - rect.height - 8))}px`
-    menu.querySelector<HTMLElement>('button:not(:disabled)')?.focus()
   }, [name])
+  useLayoutEffect(() => {
+    if (focusRequest) ref.current?.querySelector<HTMLElement>('button:not(:disabled)')?.focus()
+  }, [focusRequest])
   useSurfaceMotion(ref, 'submenu', name)
   return (
     <div
@@ -38,6 +46,8 @@ function Submenu({
       role="menu"
       aria-label={title}
       ref={ref}
+      onPointerEnter={onEnter}
+      onPointerLeave={onLeave}
       onKeyDown={(event) => menuKeys(event, close)}
     >
       {children}
@@ -68,7 +78,46 @@ export function TreeContextMenu({
   onClose,
 }: Props) {
   const ref = useRef<HTMLDivElement>(null)
-  const [sub, setSub] = useState<'type' | 'more' | null>(null)
+  const [sub, setSub] = useState<{ name: 'type' | 'more'; focusRequest: number } | null>(null)
+  const focusSequence = useRef(0)
+  const timers = useRef<{
+    open?: ReturnType<typeof setTimeout>
+    close?: ReturnType<typeof setTimeout>
+  }>({})
+  const clearHover = useCallback(() => {
+    clearTimeout(timers.current.open)
+    clearTimeout(timers.current.close)
+    timers.current = {}
+  }, [])
+  useLayoutEffect(() => clearHover, [anchor, enabled, clearHover])
+  const openSub = (name: 'type' | 'more') => {
+    clearHover()
+    setSub({ name, focusRequest: ++focusSequence.current })
+  }
+  const restoreSubFocus = () => {
+    const menu = ref.current?.querySelector<HTMLElement>('.submenu')
+    // Restore focus only when the disappearing submenu actually owns it.
+    if (menu?.contains(document.activeElement))
+      ref.current?.querySelector<HTMLElement>('[data-submenu][aria-expanded="true"]')?.focus()
+  }
+  const hoverSub = (name: 'type' | 'more') => {
+    clearHover()
+    timers.current.open = setTimeout(() => {
+      if (
+        ref.current?.querySelector(`[data-submenu="${name}"]`)?.getAttribute('aria-expanded') !==
+        'true'
+      )
+        restoreSubFocus()
+      setSub((previous) => (previous?.name === name ? previous : { name, focusRequest: 0 }))
+    }, 120)
+  }
+  const leaveSub = () => {
+    clearHover()
+    timers.current.close = setTimeout(() => {
+      restoreSubFocus()
+      setSub(null)
+    }, 200)
+  }
   const parent = node.parentId ? indexTree(tree).get(node.parentId) : undefined
   const position = parent?.children.indexOf(node.id) ?? -1
   const container = node.type === 'object' || node.type === 'array'
@@ -80,20 +129,25 @@ export function TreeContextMenu({
     menu.querySelector<HTMLElement>('button:not(:disabled)')?.focus()
     const outside = (event: PointerEvent) => {
       if (!menu.contains(event.target as Node)) {
+        clearHover()
         onClose()
         focusHandle(anchor.id)
       }
     }
-    const close = () => onClose()
+    const close = () => {
+      clearHover()
+      onClose()
+    }
     document.addEventListener('pointerdown', outside, true)
     window.addEventListener('resize', close)
     return () => {
       document.removeEventListener('pointerdown', outside, true)
       window.removeEventListener('resize', close)
     }
-  }, [anchor, onClose])
+  }, [anchor, onClose, clearHover])
   useSurfaceMotion(ref, 'menu')
   const dismiss = () => {
+    clearHover()
     onClose()
     focusHandle(node.id)
   }
@@ -104,7 +158,8 @@ export function TreeContextMenu({
     }
   }
   const closeSub = () => {
-    const old = sub
+    clearHover()
+    const old = sub?.name
     setSub(null)
     ref.current?.querySelector<HTMLElement>(`[data-submenu="${old}"]`)?.focus()
   }
@@ -114,13 +169,13 @@ export function TreeContextMenu({
       disabled={disabled}
       data-submenu={name}
       aria-haspopup="menu"
-      aria-expanded={sub === name}
-      onClick={() => setSub(sub === name ? null : name)}
+      aria-expanded={sub?.name === name}
+      onClick={() => openSub(name)}
       onKeyDown={(event) => {
         if (event.key === 'ArrowRight') {
           event.preventDefault()
           event.stopPropagation()
-          setSub(name)
+          openSub(name)
         }
       }}
     >
@@ -138,6 +193,28 @@ export function TreeContextMenu({
       }}
       role="menu"
       aria-label="节点菜单"
+      onPointerEnter={(event) => {
+        if (event.target === event.currentTarget) {
+          clearTimeout(timers.current.close)
+          delete timers.current.close
+        }
+      }}
+      onPointerLeave={leaveSub}
+      onPointerOver={(event) => {
+        if (event.pointerType === 'touch' || !(event.target instanceof Element)) return
+        const item = event.target.closest<HTMLButtonElement>('button')
+        if (
+          !item ||
+          item.closest('[role="menu"]') !== event.currentTarget ||
+          (event.relatedTarget instanceof Node && item.contains(event.relatedTarget))
+        )
+          return
+        const name = item.dataset.submenu
+        if (!item.disabled && (name === 'type' || name === 'more')) hoverSub(name)
+        else leaveSub()
+      }}
+      onClickCapture={clearHover}
+      onKeyDownCapture={clearHover}
       onContextMenu={(event) => event.preventDefault()}
       onKeyDown={(event) => {
         if (
@@ -186,8 +263,15 @@ export function TreeContextMenu({
       </button>
       <hr role="separator" />
       {trigger('more', '更多')}
-      {sub === 'type' && (
-        <Submenu title="类型菜单" name="type" close={closeSub}>
+      {sub?.name === 'type' && (
+        <Submenu
+          title="类型菜单"
+          name="type"
+          close={closeSub}
+          focusRequest={sub.focusRequest}
+          onEnter={clearHover}
+          onLeave={leaveSub}
+        >
           {(['auto', 'string'] as const).map((mode) => (
             <button
               key={mode}
@@ -214,8 +298,15 @@ export function TreeContextMenu({
           ))}
         </Submenu>
       )}
-      {sub === 'more' && (
-        <Submenu title="更多节点操作" name="more" close={closeSub}>
+      {sub?.name === 'more' && (
+        <Submenu
+          title="更多节点操作"
+          name="more"
+          close={closeSub}
+          focusRequest={sub.focusRequest}
+          onEnter={clearHover}
+          onLeave={leaveSub}
+        >
           <button
             role="menuitem"
             disabled={!enabled || !parent || position <= 0}
