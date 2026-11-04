@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
+import type { CSSProperties } from 'react'
 import type { JsonTreeNode, JsonTreeProjection } from '../../core/tree-model/model'
 import { indexTree, MAX_FORM_VALUE_LENGTH } from '../../core/tree-model/model'
 import { inputValue, modeOf } from '../../core/tree-model/edit-modes'
@@ -24,6 +25,7 @@ interface Draft {
   restoreFocus: boolean
 }
 interface Props {
+  fontSize?: number
   tree: JsonTreeProjection | null
   current: boolean
   error: string
@@ -34,7 +36,7 @@ interface Props {
 }
 
 /** Owned by the pane, not a virtual row: unmounting a row never discards its draft. */
-export function InlineEdit({ children, ...props }: Props): React.JSX.Element {
+export function InlineEdit({ children, fontSize = 12, ...props }: Props): React.JSX.Element {
   const [draft, setDraft] = useState<Draft | null>(null)
   const [position, setPosition] = useState({ left: 10, top: 80, width: 240, detached: false })
   const latest = useRef(props)
@@ -254,7 +256,11 @@ export function InlineEdit({ children, ...props }: Props): React.JSX.Element {
         draft.long || draft.error || detached || draft.blocked ? 420 : Math.max(180, rect!.width),
         window.innerWidth - 20,
       )
-      const height = draft.long ? 260 : draft.error || detached ? 110 : 30
+      const height = draft.long
+        ? 260
+        : draft.error || detached
+          ? 110
+          : Math.max(30, fontSize * 1.5 + 12)
       const next = {
         left: Math.max(10, Math.min(rect?.left ?? 20, window.innerWidth - width - 10)),
         top: Math.max(10, Math.min(detached ? 88 : rect!.top, window.innerHeight - height - 10)),
@@ -280,7 +286,7 @@ export function InlineEdit({ children, ...props }: Props): React.JSX.Element {
       window.removeEventListener('resize', place)
       observer.disconnect()
     }
-  }, [draft])
+  }, [draft, fontSize])
   useEffect(() => {
     if (input.current) {
       input.current?.focus()
@@ -300,7 +306,14 @@ export function InlineEdit({ children, ...props }: Props): React.JSX.Element {
           <div
             ref={panel}
             className={`inline-edit ${draft.long ? 'multiline' : ''} ${draft.error || stale ? 'has-error' : ''}`}
-            style={{ left: position.left, top: position.top, width: position.width }}
+            style={
+              {
+                left: position.left,
+                top: position.top,
+                width: position.width,
+                '--tree-font-size': `${fontSize}px`,
+              } as CSSProperties
+            }
             aria-label="树行编辑"
             role="group"
             aria-busy={draft.pending}

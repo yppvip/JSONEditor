@@ -19,6 +19,7 @@ const editor = vi.hoisted(() => ({
     .fn()
     .mockReturnValue({ text: '{}', revision: 0, historyVersion: 1, composing: false }),
   setReadOnly: vi.fn(),
+  setFontSize: vi.fn(),
   replaceText: vi.fn().mockReturnValue(true),
   transformClipboard: vi.fn().mockResolvedValue('{}'),
 }))

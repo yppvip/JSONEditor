@@ -11,6 +11,7 @@ import {
 } from 'react'
 import { Tree } from 'react-arborist'
 import type { NodeRendererProps, TreeApi, NodeApi } from 'react-arborist'
+import type { CSSProperties } from 'react'
 import { indexTree } from '../../core/tree-model/model'
 import type { JsonTreeNode, JsonTreeProjection } from '../../core/tree-model/model'
 import type { TreeCommand } from '../../core/commands/tree-commands'
@@ -163,6 +164,7 @@ function TreeRow({ node, style }: NodeRendererProps<PresentationNode>): React.JS
 }
 
 interface Props {
+  fontSize?: number
   tree: JsonTreeProjection | null
   current: boolean
   message: string
@@ -173,6 +175,7 @@ interface Props {
 }
 
 export function JsonTreeEditor({
+  fontSize = 12,
   tree,
   current,
   message,
@@ -185,6 +188,14 @@ export function JsonTreeEditor({
   const api = useRef<TreeApi<PresentationNode> | null>(null)
   const [store] = useState(() => new TreePresentationStore())
   const [size, setSize] = useState({ height: 240, width: 360 })
+  const rowHeight = Math.max(30, Math.ceil(fontSize * 1.5 + 8))
+  const previousRowHeight = useRef(rowHeight)
+  useLayoutEffect(() => {
+    const list = api.current?.listEl.current
+    if (list && previousRowHeight.current !== rowHeight)
+      list.scrollTop = (list.scrollTop / previousRowHeight.current) * rowHeight
+    previousRowHeight.current = rowHeight
+  }, [rowHeight])
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [menu, setMenu] = useState<(MenuAnchor & { revision: number; documentId: string }) | null>(
     null,
@@ -302,7 +313,16 @@ export function JsonTreeEditor({
     observer.observe(area.current)
     return () => observer.disconnect()
   }, [])
-  useHandleDrag({ viewport: area, api, store, tree, current, onStart: closeMenu, onDrop: drop })
+  useHandleDrag({
+    viewport: area,
+    api,
+    store,
+    tree,
+    current,
+    onStart: closeMenu,
+    onDrop: drop,
+    rowHeight,
+  })
   useEffect(() => {
     const creation = pending.current
     if (error && current) {
@@ -349,6 +369,7 @@ export function JsonTreeEditor({
   const contentWidth = Math.max(size.width, ((tree?.maxDepth ?? 0) + 1) * 16 + 300)
   return (
     <InlineEdit
+      fontSize={fontSize}
       tree={tree}
       current={current}
       error={error}
@@ -415,7 +436,11 @@ export function JsonTreeEditor({
                   ? '存在重复属性名，树仅供浏览；请在文本区消除歧义。'
                   : '树可编辑')}
         </p>
-        <div className="tree-viewport" ref={area}>
+        <div
+          className="tree-viewport"
+          ref={area}
+          style={{ '--tree-font-size': `${fontSize}px` } as CSSProperties}
+        >
           {tree && (
             <OpenNodeMenu.Provider value={openMenu}>
               <RowStore.Provider value={store}>
@@ -427,7 +452,7 @@ export function JsonTreeEditor({
                   childrenAccessor="children"
                   width={contentWidth}
                   height={Math.max(60, size.height - (contentWidth > size.width ? 16 : 0))}
-                  rowHeight={28}
+                  rowHeight={rowHeight}
                   overscanCount={4}
                   indent={16}
                   openByDefault={false}

@@ -27,10 +27,12 @@ test('hover groups expand without stealing focus, allow crossing the gap and exe
     await page.waitForTimeout(250)
     await expect(submenu).toBeVisible()
     await expect(type).toBeFocused()
-    await page.getByRole('menuitemradio', { name: '字符串', exact: true }).click()
+    // Change the mode so this assertion waits for the Worker acknowledgement,
+    // rather than accepting the original string mode before the menu is reopened.
+    await page.getByRole('menuitemradio', { name: '自动', exact: true }).click()
     await expect(treeRow(page, 'message').locator('.tree-type')).toHaveAttribute(
       'data-mode',
-      'string',
+      'auto',
     )
 
     await nodeMenu(page, 'message')

@@ -10,6 +10,7 @@ import { WorkspaceToolbar } from '../ui/WorkspaceToolbar'
 import { SplitWorkspace } from '../ui/SplitWorkspace'
 import { useWorkspaceLayout } from '../ui/workspace-layout'
 import { useCssFeedback } from '../ui/motion'
+import { useEditorPreferences } from '../ui/editor-preferences'
 
 const labels = {
   waiting: '正在准备编辑环境…',
@@ -29,6 +30,7 @@ export function JsonTextEditor({
   desktopError: boolean
 }): React.JSX.Element {
   const [layout, setLayout] = useWorkspaceLayout()
+  const [preferences, setPreferences] = useEditorPreferences()
   const container = useRef<HTMLDivElement>(null)
   const savedStatus = useRef<HTMLSpanElement>(null)
   const view = useRef<EditorView | null>(null)
@@ -93,6 +95,9 @@ export function JsonTextEditor({
     }
   }, [documentKey, files])
   useEffect(() => {
+    view.current?.setFontSize(preferences.codeFontSize)
+  }, [documentKey, preferences.codeFontSize])
+  useEffect(() => {
     files.activate()
     void files.refreshRecent()
     const action = window.desktop.onAction((action) => {
@@ -103,6 +108,7 @@ export function JsonTextEditor({
     })
     const keyboard = (event: KeyboardEvent): void => {
       if (event.defaultPrevented) return
+      if (event.target instanceof Element && event.target.closest('.settings-dialog')) return
       const action = desktopShortcut({
         key: event.key,
         control: event.ctrlKey,
@@ -154,6 +160,8 @@ export function JsonTextEditor({
         onOpenRecent={(id) => void files.open(id)}
         onFormat={() => view.current?.format()}
         onValidate={() => view.current?.validate()}
+        preferences={preferences}
+        onPreferencesChange={setPreferences}
       />
       {desktopError && (
         <p className="connection-error" role="alert">
@@ -168,6 +176,7 @@ export function JsonTextEditor({
         onChange={setLayout}
         tree={
           <JsonTreeEditor
+            fontSize={preferences.treeFontSize}
             tree={status.tree}
             current={
               !fileStatus.loading &&

@@ -26,6 +26,7 @@ import type { ModeSnapshot } from '../../core/tree-model/edit-modes'
 import { ModeTimeline } from './mode-timeline'
 import { StandaloneServices } from 'monaco-editor/editor/standalone/browser/standaloneServices'
 import { IUndoRedoService } from 'monaco-editor/platform/undoRedo/common/undoRedo'
+import { readEditorPreferences } from '../ui/editor-preferences'
 
 Object.assign(globalThis, { MonacoEnvironment: { getWorker: () => new EditorWorker() } })
 jsonDefaults.setDiagnosticsOptions({ validate: false, enableSchemaRequest: false })
@@ -67,6 +68,7 @@ export interface EditorView {
   transformClipboard: (mode: 'format' | 'compact') => Promise<string>
   exportModes: () => Promise<ModeSnapshot | undefined>
   setReadOnly: (locked: boolean) => void
+  setFontSize: (size: number) => void
 }
 
 function createTransport(): JsonWorkerTransport {
@@ -121,7 +123,7 @@ export function createEditor(
     theme: 'vs',
     ariaLabel: 'JSON 文本编辑器',
     automaticLayout: true,
-    fontSize: 14,
+    fontSize: readEditorPreferences().codeFontSize,
     fontFamily: 'Consolas, "Courier New", monospace',
     minimap: { enabled: false },
     wordWrap: 'off',
@@ -274,6 +276,7 @@ export function createEditor(
       composing: session.getSnapshot().composing,
     }),
     getHistoryVersion: historyVersion,
+    setFontSize: (fontSize) => editor.updateOptions({ fontSize }),
     setReadOnly: (value) => {
       locked = value
       editor.updateOptions({ readOnly: value })

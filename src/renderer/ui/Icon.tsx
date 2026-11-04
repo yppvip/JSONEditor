@@ -11,6 +11,7 @@ const paths = {
   copy: 'M9 9h12v12H9zM15 5V3H3v12h2',
   down: 'm6 9 6 6 6-6',
   more: 'M5 12h.01M12 12h.01M19 12h.01',
+  settings: 'M4 7h16M4 17h16M8 4v6M16 14v6',
   paste: 'M9 4H5v17h14V4h-4M9 2h6v5H9zM8 12h8M8 16h6',
   history: 'M3 4v6h6M3 10a9 9 0 1 1 1 8M12 7v5l3 2',
   info: 'M12 8h.01M12 12v5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0',

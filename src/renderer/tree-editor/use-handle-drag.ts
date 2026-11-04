@@ -32,6 +32,7 @@ export function handleDropTarget(
 }
 
 interface Props {
+  rowHeight: number
   viewport: RefObject<HTMLDivElement | null>
   api: RefObject<TreeApi<PresentationNode> | null>
   store: TreePresentationStore
@@ -42,7 +43,16 @@ interface Props {
 }
 
 /** Pointer capture belongs to the viewport: the source row can unmount during virtual scrolling. */
-export function useHandleDrag({ viewport, api, store, tree, current, onStart, onDrop }: Props) {
+export function useHandleDrag({
+  viewport,
+  api,
+  store,
+  tree,
+  current,
+  onStart,
+  onDrop,
+  rowHeight,
+}: Props) {
   useLayoutEffect(() => {
     const area = viewport.current
     if (!area || !tree) return
@@ -254,5 +264,5 @@ export function useHandleDrag({ viewport, api, store, tree, current, onStart, on
       window.removeEventListener('blur', stop)
       window.removeEventListener('resize', stop)
     }
-  }, [viewport, api, store, tree, current, onStart, onDrop])
+  }, [viewport, api, store, tree, current, onStart, onDrop, rowHeight])
 }

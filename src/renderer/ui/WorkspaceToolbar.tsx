@@ -2,6 +2,8 @@ import { useEffect, useId, useRef, useState } from 'react'
 import type { DesktopAction, RecentFile } from '../../shared/desktop-api'
 import { Icon } from './Icon'
 import type { IconName } from './Icon'
+import { SettingsDialog } from './SettingsDialog'
+import type { EditorPreferences } from './editor-preferences'
 
 interface Props {
   name: string
@@ -19,10 +21,13 @@ interface Props {
   onOpenRecent: (id: string) => void
   onFormat: () => void
   onValidate: () => void
+  preferences: EditorPreferences
+  onPreferencesChange: (preferences: EditorPreferences) => void
 }
 
 export function WorkspaceToolbar(props: Props): React.JSX.Element {
   const [panel, setPanel] = useState<'copy' | 'more' | 'about' | null>(null)
+  const [settingsOpen, setSettingsOpen] = useState(false)
   const root = useRef<HTMLElement>(null)
   const popup = useRef<HTMLDivElement>(null)
   const trigger = useRef<HTMLButtonElement | null>(null)
@@ -148,6 +153,18 @@ export function WorkspaceToolbar(props: Props): React.JSX.Element {
         </button>
         <button
           className="icon-button"
+          aria-label="设置"
+          title="编辑器设置"
+          aria-haspopup="dialog"
+          onClick={() => {
+            close()
+            setSettingsOpen(true)
+          }}
+        >
+          <Icon name="settings" />
+        </button>
+        <button
+          className="icon-button"
           aria-label="更多操作"
           title="更多操作"
           aria-expanded={panel === 'more' || panel === 'about'}
@@ -157,6 +174,13 @@ export function WorkspaceToolbar(props: Props): React.JSX.Element {
           <Icon name="more" />
         </button>
       </div>
+      {settingsOpen && (
+        <SettingsDialog
+          preferences={props.preferences}
+          onChange={props.onPreferencesChange}
+          onClose={() => setSettingsOpen(false)}
+        />
+      )}
       {panel && (
         <div
           className="toolbar-popup"

@@ -407,10 +407,12 @@ kbd {
   }
 }
 .json-tree-row {
+  height: 100%;
+  line-height: 1.5;
   display: flex;
   align-items: center;
   gap: 5px;
-  font-size: 12px;
+  font-size: var(--tree-font-size, 12px);
   white-space: nowrap;
   overflow: hidden;
   cursor: pointer;
@@ -470,7 +472,7 @@ kbd {
   font: inherit;
   /* Keep empty keys/strings and short values clickable beyond their glyphs. */
   min-width: max(48px, 4em);
-  min-height: 24px;
+  min-height: max(24px, calc(1.5em + 4px));
   white-space: nowrap;
 }
 .tree-edit-cell:focus-visible {
@@ -503,6 +505,8 @@ kbd {
 }
 .inline-edit input,
 .inline-edit textarea {
+  font-size: var(--tree-font-size, 12px);
+  line-height: 1.5;
   width: 100%;
   min-height: 24px;
   padding: 2px 4px;
@@ -511,6 +515,65 @@ kbd {
   background: var(--surface);
   color: var(--text);
   font-family: var(--font-mono);
+}
+.settings-dialog {
+  width: 380px;
+  max-width: calc(100vw - 32px);
+  max-height: calc(100dvh - 32px);
+  overflow: auto;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: var(--popup-shadow);
+}
+.settings-dialog::backdrop {
+  background: #263c5a40;
+}
+.settings-dialog header,
+.settings-dialog footer,
+.settings-field label,
+.settings-number {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.settings-description,
+.settings-help {
+  color: var(--muted);
+}
+.settings-description {
+  line-height: 1.6;
+  margin: 12px 0 20px;
+}
+.settings-field {
+  margin-block: 12px;
+}
+.settings-number input {
+  width: 76px;
+  padding: 5px 6px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  color: var(--text);
+  background: var(--surface);
+}
+.settings-help {
+  font-size: 12px;
+  min-height: 32px;
+  margin: 6px 0;
+  line-height: 1.5;
+}
+.settings-help.error {
+  color: var(--danger);
+}
+.settings-number input[aria-invalid='true'] {
+  border-color: var(--danger);
+}
+.settings-dialog footer {
+  margin-top: 12px;
+  justify-content: flex-end;
 }
 .inline-edit input:focus,
 .inline-edit textarea:focus {
