@@ -29,6 +29,20 @@ pnpm dev
 
 Windows 环境脚本默认将 pnpm 与下载缓存放在 `D:\5DevelopmentEnvironment`，复用已有 Node 24（>=24.16.0），默认不修改系统或用户 PATH。自定义目录时为 Setup、Enter 和 Test 脚本传入相同的 `-EnvironmentRoot`。本机重建记录见 [2026-11-03 环境重建](docs/environment-rebuild-2026-11-03.md)。
 
+在 Windows 上打包时，先在项目根目录的当前 PowerShell 中加载开发环境；首次使用前按上面的步骤完成环境初始化和依赖安装。以下两种打包命令可按需要分别执行：
+
+```powershell
+. .\tools\Enter-DevEnvironment.ps1
+
+# 生成未打包为安装程序的应用目录：release\win-unpacked
+pnpm build:unpack --config.electronDist=node_modules/electron/dist
+
+# 生成 Windows x64 NSIS 安装程序：release\JSONEditor-0.7.0-x64-setup.exe
+pnpm build:win --config.electronDist=node_modules/electron/dist
+```
+
+`--config.electronDist=node_modules/electron/dist` 指定使用项目依赖中已安装的 Electron 运行时；两条命令都会先执行 `pnpm build`。安装程序文件名中的版本号以项目当前版本为准。
+
 ```text
 pnpm check               Lint、格式、类型和单元/组件测试
 pnpm build               构建 Main / Preload / Renderer / Worker
@@ -36,6 +50,7 @@ pnpm test:e2e            验证已构建的应用
 pnpm test:dev            验证开发模式
 pnpm test:performance    独立性能风险原型
 pnpm test:tree-performance 真实树模型规模与资源探针
+pnpm build:unpack        构建未打包为安装程序的应用目录
 pnpm build:win           构建 Windows x64 NSIS 安装包
 pnpm build:linux         在 Linux 构建 AppImage/deb（需要真实 JSONEDITOR_PROJECT_URL）
 pnpm release:manifest win32 生成当前版本 Windows 工件 SHA-256 清单
